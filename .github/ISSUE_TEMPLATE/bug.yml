@@ -1,0 +1,69 @@
+name: Bug report
+description: Something behaves differently than documented
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please do not report security vulnerabilities here. Use a private
+        [security advisory](https://github.com/jasonc123456/eCommerce-Inventory-Manager/security/advisories/new).
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: The steps, from a known starting point.
+      placeholder: |
+        1. Connect a store with ...
+        2. Map an item to ...
+        3. Change stock to ...
+        4. The listing shows ... instead of ...
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part
+      options:
+        - Inventory or availability
+        - Synchronization or jobs
+        - eBay connection
+        - WooCommerce connection
+        - Orders
+        - Sign-in or permissions
+        - Deployment or upgrade
+        - Something else
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log lines
+      description: |
+        Redact anything sensitive. Log lines are already filtered through an
+        allowlist, but check before pasting.
+      render: text
+
+  - type: checkboxes
+    id: inventory-risk
+    attributes:
+      label: Impact
+      options:
+        - label: This caused, or could cause, an oversell or incorrect stock on a live channel

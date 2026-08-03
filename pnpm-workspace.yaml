@@ -1,0 +1,87 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Install-time lifecycle scripts are denied by default and allowed only by name
+# (section 26, D-119). Every entry is a package whose script we have reviewed and
+# require. Note this is pnpm 11's key; `onlyBuiltDependencies` is the legacy
+# spelling and is no longer enforced.
+allowBuilds:
+  # Downloads and links the platform-native esbuild binary. tsx and Vitest
+  # cannot run without it.
+  esbuild: true
+  # Installs the Git hooks binary for this repository.
+  lefthook: true
+  # Downloads the platform-native libvips binary. Next.js uses it to optimize
+  # images at build time and falls back to a much slower path without it.
+  sharp: true
+
+# Single source of truth for third-party versions across the workspace.
+# Packages reference these with "catalog:" so a core runtime version can never
+# be duplicated by accident (D-114, section 26).
+catalog:
+  # Runtime
+  next: 16.2.12
+  react: 19.2.8
+  react-dom: 19.2.8
+  zod: 4.4.3
+  drizzle-orm: 0.45.2
+  pg: 8.22.0
+  pino: 10.3.1
+  pino-pretty: 13.1.3
+  prom-client: 15.1.3
+  nodemailer: 9.0.3
+
+  # Queue candidates under V-06 benchmark. Both stay in the catalog until
+  # ADR-0003 records the winner; the loser is then removed.
+  graphile-worker: 0.17.3
+  pg-boss: 12.26.4
+
+  # Build and quality
+  typescript: 6.0.3
+  eslint: 10.8.0
+  "@eslint/js": 10.0.1
+  typescript-eslint: 8.65.0
+  prettier: 3.9.6
+  eslint-config-prettier: 10.1.8
+  eslint-plugin-jsx-a11y: 6.10.2
+  eslint-plugin-react: 7.37.5
+  eslint-plugin-react-hooks: 7.1.1
+  eslint-plugin-promise: 7.3.0
+  eslint-plugin-security: 4.0.1
+  "@next/eslint-plugin-next": 16.2.12
+
+  # Test
+  vitest: 4.1.10
+  "@vitest/coverage-v8": 4.1.10
+  fast-check: 4.9.0
+
+  # Types
+  "@types/node": 24.13.3
+  "@types/pg": 8.20.3
+  "@types/react": 19.2.18
+  "@types/react-dom": 19.2.4
+  "@types/nodemailer": 8.0.1
+
+  # Styling
+  tailwindcss: 4.3.3
+  "@tailwindcss/postcss": 4.3.3
+
+  # Tooling
+  drizzle-kit: 0.31.10
+  lefthook: 2.1.10
+  "@changesets/cli": 2.31.1
+  tsx: 4.23.1
+
+# Supply-chain controls (section 26, D-119).
+#
+# A package published in the last two days cannot enter the lockfile. This is the
+# cheapest available defence against a compromised maintainer account, which is
+# usually caught and yanked within hours. Raising a version that trips this gate
+# is a deliberate act: wait, or add a reviewed exclusion below with a reason.
+minimumReleaseAge: 2880
+minimumReleaseAgeExclude: []
+
+# Every command here runs non-interactively, including inside the development
+# container and CI. Prompting to confirm a node_modules rebuild would just hang.
+confirmModulesPurge: false

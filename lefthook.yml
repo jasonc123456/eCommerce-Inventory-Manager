@@ -1,0 +1,74 @@
+# Git hooks (section 26, D-118).
+#
+# Hooks are a fast courtesy, not the release gate. Continuous integration is the
+# gate, and it re-runs everything from a clean checkout. A hook that takes long
+# enough to be annoying gets bypassed with --no-verify, and a hook everyone
+# bypasses protects nothing, so these stay short: formatting and linting of
+# staged files, plus a check that no real deployment state is being committed.
+#
+# Type checking and the test suite are deliberately absent from pre-commit. They
+# are whole-workspace operations that cannot be scoped to staged files, and they
+# run in the fast CI tier.
+#
+# Install with `pnpm install` (the prepare script) or `lefthook install`.
+
+pre-commit:
+  parallel: true
+  jobs:
+    - name: format
+      glob: "*.{ts,tsx,js,mjs,cjs,json,jsonc,md,yml,yaml,css}"
+      run: pnpm exec prettier --write {staged_files}
+      stage_fixed: true
+
+    - name: lint
+      glob: "*.{ts,tsx}"
+      # --max-warnings 0 matches the lint script: a warning nobody fixes is a
+      # rule nobody meant to enable.
+      run: pnpm exec eslint --max-warnings 0 --no-warn-ignored {staged_files}
+
+    - name: no real secrets
+      # Belt and braces alongside .gitignore. These filenames hold real
+      # credentials, keyrings, and deployment state that must never be tracked
+      # (section 23, D-092). .env.example is generated and redacted, so it is
+      # the one permitted exception.
+      run: |
+        blocked=$(printf '%s\n' {staged_files} \
+          | grep -E '(^|/)(\.env($|\.)|docker-compose\.yml$|.*\.(key|pem)$|keyring.*\.json$)' \
+          | grep -v '\.env\.example$' || true)
+        if [ -n "$blocked" ]; then
+          echo "Refusing to commit real deployment state or credentials:" >&2
+          echo "$blocked" >&2
+          exit 1
+        fi
+
+commit-msg:
+  jobs:
+    - name: subject style
+      # Section 26 as amended by D-128. Subjects are short, plain, and
+      # imperative. No Conventional Commits type prefix, and no trailers that
+      # attribute authorship to a tool (D-106).
+      run: |
+        subject=$(head -n 1 "{1}")
+        case "$subject" in
+          '#'*) exit 0 ;;
+          'fixup!'*|'squash!'*) exit 0 ;;
+        esac
+        if [ ${#subject} -gt 72 ]; then
+          echo "Commit subject is ${#subject} characters; keep it to 72 or fewer." >&2
+          exit 1
+        fi
+        if printf '%s' "$subject" | grep -qE '^(feat|fix|chore|docs|refactor|test|build|ci|perf|style|revert)(\([^)]*\))?!?: '; then
+          echo "Do not use a Conventional Commits type prefix. Write the subject plainly." >&2
+          exit 1
+        fi
+        if grep -qiE '^(Co-Authored-By|Generated-By):' "{1}"; then
+          echo "Remove tool attribution trailers from the commit message (D-106)." >&2
+          exit 1
+        fi
+
+pre-push:
+  jobs:
+    - name: typecheck
+      # The last cheap chance to catch a break before it reaches CI. Pushing is
+      # rare enough that a few seconds is acceptable here.
+      run: pnpm typecheck

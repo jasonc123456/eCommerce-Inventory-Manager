@@ -1,0 +1,63 @@
+# Dependency updates (section 26, D-119).
+#
+# Grouped rather than one pull request per package: a wall of individual bumps
+# gets rubber-stamped, and rubber-stamping is how a compromised release enters a
+# project that has automated updates. Grouping keeps the number of decisions
+# small enough that each one gets read.
+#
+# Note that the two-day minimumReleaseAge in pnpm-workspace.yaml still applies.
+# A Dependabot pull request proposing a package published hours ago will fail
+# its own CI run at install time, which is the intended behavior.
+
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: tuesday
+    open-pull-requests-limit: 5
+    groups:
+      # Type definitions and linters move constantly and almost never break
+      # anything at runtime.
+      dev-tooling:
+        patterns:
+          - "@types/*"
+          - "eslint*"
+          - "typescript-eslint"
+          - "prettier*"
+          - "vitest"
+          - "@vitest/*"
+          - "lefthook"
+      # Framework and runtime updates get read individually within the group.
+      runtime:
+        patterns:
+          - "next"
+          - "react"
+          - "react-dom"
+          - "drizzle-orm"
+          - "drizzle-kit"
+          - "pg"
+          - "zod"
+          - "pino*"
+          - "graphile-worker"
+
+  # Workflow actions are pinned to commit SHAs, which is exactly the case
+  # Dependabot handles well: it updates the SHA and the trailing version
+  # comment together, so pinning costs nothing in maintenance.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: tuesday
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: tuesday

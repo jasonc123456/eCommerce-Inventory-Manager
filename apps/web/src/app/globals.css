@@ -1,0 +1,28 @@
+@import 'tailwindcss';
+
+/*
+ * Section 21 requires WCAG 2.2 AA. Two things are set here rather than left to
+ * defaults because they are the ones most often lost later:
+ *
+ *   A visible focus indicator on every interactive element. Removing outlines
+ *   for aesthetics is the single most common way a interface becomes unusable
+ *   by keyboard.
+ *
+ *   Respect for reduced-motion. Animation that cannot be turned off is a
+ *   barrier, not a flourish.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}

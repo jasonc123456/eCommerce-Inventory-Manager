@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.next/
+out/
+*.tsbuildinfo
+
+# Test and coverage output
+coverage/
+test-results/
+playwright-report/
+blob-report/
+
+# Real secrets and real deployment state. Section 23 and D-092 keep these at the
+# deployment root, outside this repository, but ignore them here as well so a
+# stray copy can never be committed.
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+keyring*.json
+
+# The real deployment files live at DEPLOY_ROOT and are never tracked.
+# These names are ignored defensively in case one is ever copied in.
+/docker-compose.yml
+/docker-compose.override.yml
+
+# Durable data, backups, and exports never belong in Git.
+data/
+backups/
+exports/
+uploads/
+
+# Local tooling
+.DS_Store
+*.log
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.recommended.json
+
+# Containerized toolchain caches (scripts/pnpm.sh)
+.devhome/
+
+# Development stack data and caches
+.devdata/
+
+# pnpm's content-addressable store. pnpm places it beside node_modules because
+# hardlinks cannot cross filesystems, and node_modules lives on the bind-mounted
+# workspace. It is a cache: safe to delete, expensive to re-download.
+.pnpm-store/

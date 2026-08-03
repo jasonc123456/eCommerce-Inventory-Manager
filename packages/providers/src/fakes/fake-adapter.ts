@@ -1,0 +1,304 @@
+import type {
+  AdapterCapabilities,
+  ChannelAdapter,
+  ChannelEntityRef,
+  InboundWebhook,
+  Page,
+  QuantityObservation,
+  QuantityWrite,
+  VerifiedWebhook,
+  WriteAcknowledgement,
+} from '../adapter';
+import type { ProviderFailure, ProviderName, ProviderResult } from '../outcomes';
+
+/**
+ * A programmable in-memory channel adapter.
+ *
+ * This is how every failure path gets tested. Rate limits, revoked
+ * authorization, version conflicts, and partial batch failures are all
+ * ordinary provider behavior that the retry policy in section 12 and the
+ * reconciliation in section 14 exist to handle, and none of them can be
+ * produced on demand against a real provider — you cannot ask eBay to
+ * rate-limit you at a convenient moment.
+ *
+ * There is no HTTP anywhere in this file, and none anywhere in this package in
+ * M0. Section 40 permits no live provider call, and a fake that "falls back" to
+ * the network is how that guarantee gets broken by accident.
+ */
+
+export interface FakeAdapterOptions {
+  readonly provider?: ProviderName;
+  readonly capabilities?: Partial<AdapterCapabilities>;
+  /** Starting quantities, keyed by the entity key. */
+  readonly initialQuantities?: ReadonlyMap<string, number>;
+  /** Entities the fake reports from `listEntities`. */
+  readonly entities?: readonly ChannelEntityRef[];
+  /** Page size for `listEntities`, so pagination itself can be exercised. */
+  readonly pageSize?: number;
+}
+
+/** A record of one call, so tests can assert on what was actually sent. */
+export interface RecordedWrite {
+  readonly entityKey: string;
+  readonly quantity: number;
+  readonly idempotencyKey: string;
+  readonly expectedVersion?: string;
+}
+
+export function entityKey(entity: ChannelEntityRef): string {
+  return entity.variationId === undefined
+    ? entity.externalId
+    : `${entity.externalId}:${entity.variationId}`;
+}
+
+const DEFAULT_CAPABILITIES: AdapterCapabilities = {
+  provider: 'ebay',
+  supportsWebhooks: true,
+  supportsWebhookSignatures: true,
+  supportsOptimisticConcurrency: true,
+  supportsBatchQuantityWrites: true,
+  maxBatchSize: 25,
+  supportsPerLocationStock: false,
+};
+
+export class FakeChannelAdapter implements ChannelAdapter {
+  public readonly capabilities: AdapterCapabilities;
+
+  /** Everything written, in order. Assertions read this. */
+  public readonly writes: RecordedWrite[] = [];
+  public readonly calls: string[] = [];
+
+  private readonly quantities = new Map<string, number>();
+  private readonly versions = new Map<string, number>();
+  private readonly entities: readonly ChannelEntityRef[];
+  private readonly pageSize: number;
+  private readonly backorders = new Set<string>();
+
+  /**
+   * Failures to return instead of doing the work, one per call, consumed in
+   * order. A queue rather than a flag so a test can express "fail twice, then
+   * succeed", which is the shape every retry test needs.
+   */
+  private readonly queuedFailures: ProviderFailure[] = [];
+
+  public constructor(options: FakeAdapterOptions = {}) {
+    this.capabilities = { ...DEFAULT_CAPABILITIES, ...options.capabilities };
+    if (options.provider !== undefined) {
+      this.capabilities = { ...this.capabilities, provider: options.provider };
+    }
+    this.entities = options.entities ?? [];
+    this.pageSize = options.pageSize ?? 50;
+
+    for (const [key, quantity] of options.initialQuantities ?? []) {
+      this.quantities.set(key, quantity);
+      this.versions.set(key, 1);
+    }
+  }
+
+  /** Makes the next call fail. Call repeatedly to queue several. */
+  public failNext(failure: ProviderFailure): this {
+    this.queuedFailures.push(failure);
+    return this;
+  }
+
+  /** Simulates a change made outside this application, which is what drift is. */
+  public setQuantityOutOfBand(entity: ChannelEntityRef, quantity: number): this {
+    const key = entityKey(entity);
+    this.quantities.set(key, quantity);
+    this.versions.set(key, (this.versions.get(key) ?? 0) + 1);
+    return this;
+  }
+
+  public enableBackorders(entity: ChannelEntityRef): this {
+    this.backorders.add(entityKey(entity));
+    return this;
+  }
+
+  public quantityOf(entity: ChannelEntityRef): number | undefined {
+    return this.quantities.get(entityKey(entity));
+  }
+
+  public checkCredentials(): Promise<ProviderResult<{ readonly accountLabel: string }>> {
+    this.calls.push('checkCredentials');
+    const failure = this.queuedFailures.shift();
+    if (failure !== undefined) {
+      return Promise.resolve(failure);
+    }
+    return Promise.resolve({
+      status: 'success',
+      value: { accountLabel: `fake-${this.capabilities.provider}` },
+    });
+  }
+
+  public listEntities(cursor?: string): Promise<ProviderResult<Page<ChannelEntityRef>>> {
+    this.calls.push('listEntities');
+    const failure = this.queuedFailures.shift();
+    if (failure !== undefined) {
+      return Promise.resolve(failure);
+    }
+
+    const offset = cursor === undefined ? 0 : Number.parseInt(cursor, 10);
+    if (Number.isNaN(offset) || offset < 0) {
+      return Promise.resolve({ status: 'rejected', message: 'malformed cursor' });
+    }
+
+    const items = this.entities.slice(offset, offset + this.pageSize);
+    const next = offset + this.pageSize;
+
+    return Promise.resolve({
+      status: 'success',
+      value: {
+        items,
+        ...(next < this.entities.length ? { nextCursor: String(next) } : {}),
+      },
+    });
+  }
+
+  public readQuantities(
+    entities: readonly ChannelEntityRef[],
+  ): Promise<ProviderResult<readonly QuantityObservation[]>> {
+    this.calls.push('readQuantities');
+    const failure = this.queuedFailures.shift();
+    if (failure !== undefined) {
+      return Promise.resolve(failure);
+    }
+
+    const observations: QuantityObservation[] = [];
+    for (const entity of entities) {
+      const key = entityKey(entity);
+      const quantity = this.quantities.get(key);
+      if (quantity === undefined) {
+        continue;
+      }
+      observations.push({
+        entity,
+        quantity,
+        version: String(this.versions.get(key) ?? 1),
+        observedAt: new Date(0),
+        backordersEnabled: this.backorders.has(key),
+      });
+    }
+
+    return Promise.resolve({ status: 'success', value: observations });
+  }
+
+  public writeQuantities(
+    writes: readonly QuantityWrite[],
+  ): Promise<ProviderResult<readonly ProviderResult<WriteAcknowledgement>[]>> {
+    this.calls.push('writeQuantities');
+    const failure = this.queuedFailures.shift();
+    if (failure !== undefined) {
+      return Promise.resolve(failure);
+    }
+
+    if (
+      this.capabilities.maxBatchSize !== undefined &&
+      writes.length > this.capabilities.maxBatchSize
+    ) {
+      return Promise.resolve({
+        status: 'rejected',
+        message: `batch of ${String(writes.length)} exceeds the maximum of ${String(this.capabilities.maxBatchSize)}`,
+        code: 'BATCH_TOO_LARGE',
+      });
+    }
+
+    const results = writes.map((write) => this.applyWrite(write));
+    return Promise.resolve({ status: 'success', value: results });
+  }
+
+  private applyWrite(write: QuantityWrite): ProviderResult<WriteAcknowledgement> {
+    const key = entityKey(write.entity);
+
+    if (!this.quantities.has(key)) {
+      return { status: 'not_found', message: `no entity ${key}` };
+    }
+
+    if (write.quantity < 0 || !Number.isInteger(write.quantity)) {
+      return {
+        status: 'rejected',
+        message: 'quantity must be a whole number of zero or more',
+        code: 'INVALID_QUANTITY',
+      };
+    }
+
+    const currentVersion = String(this.versions.get(key) ?? 1);
+
+    if (
+      this.capabilities.supportsOptimisticConcurrency &&
+      write.expectedVersion !== undefined &&
+      write.expectedVersion !== currentVersion
+    ) {
+      return {
+        status: 'conflict',
+        message: `entity ${key} changed since it was read`,
+        currentVersion,
+      };
+    }
+
+    this.writes.push({
+      entityKey: key,
+      quantity: write.quantity,
+      idempotencyKey: write.idempotencyKey,
+      ...(write.expectedVersion === undefined ? {} : { expectedVersion: write.expectedVersion }),
+    });
+
+    const unchanged = this.quantities.get(key) === write.quantity;
+    if (!unchanged) {
+      this.quantities.set(key, write.quantity);
+      this.versions.set(key, Number(currentVersion) + 1);
+    }
+
+    return {
+      status: 'success',
+      value: {
+        entity: write.entity,
+        version: String(this.versions.get(key) ?? 1),
+        unchanged,
+      },
+    };
+  }
+
+  /**
+   * Verifies a webhook against a fixed test secret.
+   *
+   * The check is a literal header comparison rather than a real HMAC, because
+   * this fake exists to exercise the application's handling of verified and
+   * unverified webhooks. The real signature algorithms are each provider's own
+   * and are tested against that provider's adapter in M2.
+   */
+  public verifyWebhook(webhook: InboundWebhook): Promise<ProviderResult<VerifiedWebhook>> {
+    this.calls.push('verifyWebhook');
+    const failure = this.queuedFailures.shift();
+    if (failure !== undefined) {
+      return Promise.resolve(failure);
+    }
+
+    if (webhook.headers['x-fake-signature'] !== 'valid') {
+      return Promise.resolve({
+        status: 'rejected',
+        message: 'signature did not verify',
+        code: 'BAD_SIGNATURE',
+      });
+    }
+
+    let parsed: { eventId?: unknown; eventType?: unknown; externalId?: unknown };
+    try {
+      parsed = JSON.parse(new TextDecoder().decode(webhook.rawBody)) as typeof parsed;
+    } catch {
+      return Promise.resolve({ status: 'rejected', message: 'body was not JSON' });
+    }
+
+    if (typeof parsed.eventId !== 'string' || typeof parsed.eventType !== 'string') {
+      return Promise.resolve({ status: 'rejected', message: 'body was missing required fields' });
+    }
+
+    return Promise.resolve({
+      status: 'success',
+      value: {
+        eventId: parsed.eventId,
+        eventType: parsed.eventType,
+        affects: typeof parsed.externalId === 'string' ? [{ externalId: parsed.externalId }] : [],
+      },
+    });
+  }
+}

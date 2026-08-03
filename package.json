@@ -1,0 +1,58 @@
+{
+  "name": "ecommerce-inventory-manager",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "description": "Self-hosted eBay and WooCommerce inventory synchronization platform",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jasonc123456/eCommerce-Inventory-Manager.git"
+  },
+  "packageManager": "pnpm@11.18.0",
+  "engines": {
+    "node": ">=24.0.0 <25",
+    "pnpm": ">=11.0.0"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run --project unit --coverage",
+    "test:watch": "vitest --project unit",
+    "test:integration": "vitest run --project integration",
+    "env:check": "tsx packages/config/src/cli/check-env-example.ts",
+    "bench:queue": "tsx scripts/benchmark-queue.ts",
+    "prepare": "git config core.hooksPath .githooks || true",
+    "licenses:check": "tsx scripts/check-licenses.ts",
+    "changeset": "changeset",
+    "version": "changeset version"
+  },
+  "devDependencies": {
+    "@changesets/cli": "catalog:",
+    "@eim/db": "workspace:*",
+    "@eim/testing": "workspace:*",
+    "@eslint/js": "catalog:",
+    "@next/eslint-plugin-next": "catalog:",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "eslint": "catalog:",
+    "eslint-config-prettier": "catalog:",
+    "eslint-plugin-jsx-a11y": "catalog:",
+    "eslint-plugin-promise": "catalog:",
+    "eslint-plugin-react": "catalog:",
+    "eslint-plugin-react-hooks": "catalog:",
+    "eslint-plugin-security": "catalog:",
+    "graphile-worker": "catalog:",
+    "lefthook": "catalog:",
+    "pg-boss": "catalog:",
+    "prettier": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "typescript-eslint": "catalog:",
+    "vitest": "catalog:"
+  }
+}

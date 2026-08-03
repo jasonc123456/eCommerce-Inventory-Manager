@@ -1,0 +1,99 @@
+# Development stack. Tracked in the repository on purpose (section 23).
+#
+# The real production docker-compose.yml and .env live at the deployment root,
+# outside this repository, and are never tracked (D-092). Nothing here is a
+# template for production: the source bind mount, the weak database password, and
+# the absence of TLS are all development-only choices.
+#
+#   docker compose -f docker-compose.dev.yml up -d
+#   ./scripts/dev.sh pnpm install
+#
+name: eim-dev
+
+services:
+  # ---------------------------------------------------------------------------
+  # dev — long-running toolchain container. Commands run through `docker exec`
+  # rather than a fresh container per invocation, so pnpm, tsc, and vitest keep
+  # their warm caches. node_modules lands in the bind-mounted workspace on the
+  # host, which is what lets the editor resolve types and lint rules.
+  # ---------------------------------------------------------------------------
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      args:
+        # Match the host owner of this directory so in-container writes are not
+        # root-owned. Override with DEV_UID/DEV_GID if your ids differ.
+        DEV_UID: "${DEV_UID:-1001}"
+        DEV_GID: "${DEV_GID:-1001}"
+    container_name: eim-dev
+    restart: unless-stopped
+    working_dir: /workspace
+    environment:
+      NODE_ENV: development
+      # Development defaults. loadConfig() supplies obvious placeholders for
+      # anything omitted, so a contributor can boot without writing a .env.
+      EIM_PUBLIC_URL: http://localhost:3000
+      EIM_DATABASE_URL: postgresql://eim:eim@postgres:5432/eim
+      # Integration tests create and drop their own databases, so they connect to
+      # the maintenance database rather than the application one.
+      EIM_TEST_DATABASE_URL: postgresql://eim:eim@postgres:5432/postgres
+      EIM_SMTP_HOST: mailpit
+      EIM_SMTP_PORT: "1025"
+      EIM_MAIL_FROM_ADDRESS: development@example.invalid
+      EIM_LOG_LEVEL: debug
+    volumes:
+      - .:/workspace
+    ports:
+      # Next.js dev server.
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # postgres — the same major version production runs (D-006). Integration tests
+  # run against this rather than a fake, because constraints, row locks, and
+  # transaction behavior are exactly what those tests exist to verify.
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:18-bookworm
+    container_name: eim-dev-postgres
+    restart: unless-stopped
+    # Runs as the host owner so the bind-mounted data directory stays readable
+    # without sudo, matching the production ownership model (D-142).
+    user: "${DEV_UID:-1001}:${DEV_GID:-1001}"
+    environment:
+      POSTGRES_USER: eim
+      POSTGRES_PASSWORD: eim
+      POSTGRES_DB: eim
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - ./.devdata/postgres:/var/lib/postgresql/data
+    ports:
+      # Exposed on loopback only, so a psql or a GUI client on the host can
+      # connect without making the database reachable from the network.
+      - "127.0.0.1:55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eim -d eim"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  # ---------------------------------------------------------------------------
+  # mailpit — local email capture. Section 20 requires that development never
+  # sends real authentication mail unintentionally; this is how that is
+  # guaranteed rather than merely intended.
+  # ---------------------------------------------------------------------------
+  mailpit:
+    image: axllent/mailpit:v1.28
+    container_name: eim-dev-mailpit
+    restart: unless-stopped
+    environment:
+      MP_MAX_MESSAGES: "500"
+      MP_SMTP_AUTH_ACCEPT_ANY: "true"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+    ports:
+      # Web UI for reading captured mail.
+      - "127.0.0.1:8025:8025"

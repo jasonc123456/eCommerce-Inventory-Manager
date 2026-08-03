@@ -1,0 +1,83 @@
+# Integration tier (section 25, section 26, D-118).
+#
+# Everything that needs a real PostgreSQL 18. Separated from the fast tier
+# because it is slower and because its failures mean something different: a
+# failure here is usually a constraint, a transaction, or a lock behaving
+# differently than the application assumed, and those are worth reading
+# carefully rather than skimming past on the way to a lint error.
+#
+# Section 25 forbids a fallback to an in-memory database. The service below is
+# the real engine at the real major version, and if it does not start the suite
+# fails rather than degrading into a test of a fake.
+
+name: integration
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: integration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  integration:
+    name: integration tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        # The same major version production runs (D-006). Testing against a
+        # different major would leave the differences that matter — locking,
+        # planner behavior, new constraint syntax — untested precisely where
+        # they are load-bearing.
+        image: postgres:18-bookworm
+        env:
+          POSTGRES_USER: eim
+          POSTGRES_PASSWORD: eim
+          POSTGRES_DB: eim
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U eim"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      # The harness creates and drops a database per test file, so it connects
+      # to the maintenance database rather than the application one.
+      EIM_TEST_DATABASE_URL: postgresql://eim:eim@localhost:5432/postgres
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Integration tests
+        run: pnpm test:integration
+
+      # A build failure caught here rather than at release time. Section 23
+      # ships a standalone server, and the standalone output is exactly what
+      # a plain `next dev` never exercises.
+      - name: Build the web application
+        run: pnpm --filter @eim/web build
+
+      - name: Build the worker
+        run: pnpm --filter @eim/worker build

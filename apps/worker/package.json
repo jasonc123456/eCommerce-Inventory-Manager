@@ -1,0 +1,31 @@
+{
+  "name": "@eim/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "description": "Background worker: the scheduler lease, the projection cadence, and job execution.",
+  "scripts": {
+    "start": "node --enable-source-maps dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "build": "esbuild src/index.ts --bundle --platform=node --target=node24 --format=esm --packages=external --outfile=dist/index.js --sourcemap",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@eim/config": "workspace:*",
+    "@eim/db": "workspace:*",
+    "@eim/domain": "workspace:*",
+    "@eim/observability": "workspace:*",
+    "@eim/providers": "workspace:*",
+    "graphile-worker": "catalog:",
+    "pg": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/pg": "catalog:",
+    "esbuild": "0.25.12",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

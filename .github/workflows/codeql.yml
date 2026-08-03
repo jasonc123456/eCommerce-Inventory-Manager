@@ -1,0 +1,56 @@
+# Static analysis tier (section 26, D-118).
+#
+# CodeQL finds a different class of defect than the linter: taint flow from a
+# request into a query or a filesystem path, rather than a rule about how code
+# is written. It is slow and it is on a schedule as well as on push, because a
+# new query release can find something in code that has not changed.
+
+name: codeql
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly. New queries ship regularly, and a finding in unchanged code is
+    # exactly what a scheduled run is for.
+    - cron: "37 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: analyze
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    permissions:
+      contents: read
+      # The one permission this workflow genuinely needs beyond read: results
+      # are uploaded as a security event so findings appear in the Security tab
+      # rather than being buried in a log.
+      security-events: write
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@18420e3271f74589575af831a523c833acda327f # codeql-bundle-v2.26.2
+        with:
+          languages: javascript-typescript
+          # security-extended adds queries with a higher false-positive rate.
+          # Worth it here: this application holds marketplace credentials and
+          # customer data, so a missed finding costs more than a triaged one.
+          queries: security-extended
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@18420e3271f74589575af831a523c833acda327f # codeql-bundle-v2.26.2

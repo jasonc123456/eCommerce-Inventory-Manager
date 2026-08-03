@@ -1,0 +1,126 @@
+# Fast tier (section 26, D-118).
+#
+# Everything that needs no services and no browser. This is the tier that runs
+# on every push and is expected to finish in a couple of minutes; the slower
+# tiers exist so that this one can stay fast enough that nobody is tempted to
+# skip it.
+#
+# Every third-party action is pinned to a commit SHA rather than a tag. A tag is
+# mutable: whoever controls the repository can repoint v4 at anything, and a
+# workflow with write permissions running unreviewed code is the shape of most
+# supply-chain incidents in CI. The version in the trailing comment is the
+# human-readable form of the same pin, kept in step by Dependabot.
+
+name: fast
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Least privilege by default. Individual jobs raise this only where they must.
+permissions:
+  contents: read
+
+concurrency:
+  # A superseded run on the same branch tells you about code nobody will merge.
+  group: fast-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Never let a build reach the network for a package it could have cached, and
+  # make an attempt to do so a hard failure rather than a slow success.
+  NODE_OPTIONS: --max-old-space-size=4096
+
+jobs:
+  verify:
+    name: format, lint, types, unit tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      # --frozen-lockfile is the point of the whole exercise (D-114). A CI run
+      # that quietly resolves a different dependency tree than the one committed
+      # has tested something nobody will deploy.
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Format
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Types
+        run: pnpm typecheck
+
+      - name: Unit tests and coverage
+        run: pnpm test
+
+      # The generated .env.example must match the configuration schema. A
+      # setting added without documentation is a setting no self-hoster can
+      # discover, so this fails the build rather than warning.
+      - name: Configuration documentation is current
+        run: pnpm env:check
+
+  secrets:
+    name: secret scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # gitleaks needs history to scan what was committed, not just the
+          # working tree: a secret removed in a later commit is still published.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Scan for committed secrets
+        # Run from the pinned container image rather than a marketplace action,
+        # so the scanner itself is one fewer piece of third-party workflow code
+        # with access to the repository.
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/repo" \
+            ghcr.io/gitleaks/gitleaks:v8.30.2 \
+            detect --source=/repo --redact --verbose --no-banner
+
+  licenses:
+    name: dependency licenses
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # Section 24: this project is AGPL-3.0-only, and a dependency under an
+      # incompatible licence is a legal defect in the release, not a style
+      # issue. Catching it at build time is the only point at which it is cheap
+      # to fix.
+      - name: Check dependency licences
+        run: pnpm licenses:check

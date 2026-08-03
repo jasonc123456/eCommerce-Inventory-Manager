@@ -1,0 +1,36 @@
+name: Feature request
+description: Suggest something the application should do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: |
+        What are you trying to do that is currently hard or impossible? Describe
+        the situation rather than the feature; the best solution is often not
+        the one that first comes to mind.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you have in mind
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you have already tried
+      description: Workarounds, other tools, or why the existing features do not fit.
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - label: This would change how inventory is calculated or projected
+        - label: This needs a new provider or marketplace integration
+        - label: This would change the database schema

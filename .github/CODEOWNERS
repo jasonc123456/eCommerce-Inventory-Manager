@@ -1,0 +1,25 @@
+# Review ownership.
+#
+# The catch-all covers everything; the entries below it exist to make the
+# high-consequence paths explicit, so that a change to inventory arithmetic or
+# to a migration is visibly a different kind of change from a copy edit.
+
+*                               @jasonc123456
+
+# The inventory rules and the authorization model. A defect here is an oversell
+# or a cross-business data leak, and neither is caught by a passing build.
+/packages/domain/               @jasonc123456
+/packages/authz/                @jasonc123456
+
+# Applied migrations are immutable. A change under this path is either a new
+# forward migration or a mistake.
+/packages/db/migrations/        @jasonc123456
+
+# Supply chain and release. Changes here alter what runs in CI with what
+# permissions, and what ends up in a published image.
+/.github/workflows/             @jasonc123456
+/pnpm-workspace.yaml            @jasonc123456
+/pnpm-lock.yaml                 @jasonc123456
+
+# The canonical specification and the decision record.
+/docs/adr/                      @jasonc123456

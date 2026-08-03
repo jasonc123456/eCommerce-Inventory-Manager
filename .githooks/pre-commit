@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Tracked hook. See scripts/git-hook.sh for why these are not lefthook's own
+# installed shims. Enabled by core.hooksPath, set by the prepare script.
+exec "$(cd "$(dirname "$0")/.." && pwd)/scripts/git-hook.sh" pre-commit "$@"

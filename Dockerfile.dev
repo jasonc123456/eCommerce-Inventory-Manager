@@ -1,0 +1,40 @@
+# Development toolchain image.
+#
+# This is NOT the production image. Production runs an immutable published GHCR
+# image with no source mount (section 23); this one exists so a contributor can
+# work without installing Node 24 on the host.
+#
+# The dev user's UID and GID are build arguments so files created in the
+# container (node_modules, .next, dist) are owned by the host user rather than
+# root. Root-owned files inside a bind-mounted workspace break both the dev
+# server and git, and are tedious to undo.
+FROM node:24-bookworm-slim
+
+ARG DEV_UID=1001
+ARG DEV_GID=1001
+ARG PNPM_VERSION=11.18.0
+
+# git is required by lefthook and by any tooling that inspects the working tree.
+# postgresql-client gives psql for inspecting the dev database.
+# ca-certificates is needed for registry and provider TLS.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        git \
+        postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# The base image already ships node:1000. Create a separate account at the host
+# owner's ids; when they happen to be 1000 the existing group is reused.
+RUN if ! getent group "${DEV_GID}" >/dev/null; then groupadd -g "${DEV_GID}" dev; fi \
+    && useradd -m -u "${DEV_UID}" -g "${DEV_GID}" -s /bin/bash dev
+
+# Activate pnpm as root so it lands in a system path readable by the dev user.
+RUN corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+
+USER dev
+WORKDIR /workspace
+
+# Keep the container alive so commands run through `docker exec` without paying
+# container startup each time.
+CMD ["sleep", "infinity"]

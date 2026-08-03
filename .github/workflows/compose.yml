@@ -1,0 +1,57 @@
+# Deployment tier (section 23, section 26, D-118).
+#
+# Proves that a self-hoster following the README gets a working installation.
+# Every other tier tests the code; this one tests the instructions, which are
+# the part most likely to rot silently because contributors already have a
+# working environment and never run them.
+
+name: compose
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - "docker-compose.dev.yml"
+      - "Dockerfile*"
+      - ".github/workflows/compose.yml"
+      - "packages/db/migrations/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: compose-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  stack:
+    name: development stack starts and migrates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Start the stack
+        run: docker compose -f docker-compose.dev.yml up -d --build --wait
+
+      - name: Apply migrations
+        run: docker compose -f docker-compose.dev.yml exec -T -u dev dev pnpm --filter @eim/db migrate
+
+      - name: Migrations are idempotent
+        # Running twice must be a no-op. Section 23 runs migrations on every
+        # deployment, so a second run happens on every restart of an unchanged
+        # build; if that were not safe, the failure would be in production.
+        run: docker compose -f docker-compose.dev.yml exec -T -u dev dev pnpm --filter @eim/db migrate
+
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.dev.yml logs --no-color --tail 200
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f docker-compose.dev.yml down -v

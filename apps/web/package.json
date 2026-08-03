@@ -1,0 +1,33 @@
+{
+  "name": "@eim/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "description": "Web application: the operator interface and the HTTP surface.",
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "NODE_ENV=production next build",
+    "start": "next start --port 3000",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@eim/authz": "workspace:*",
+    "@eim/config": "workspace:*",
+    "@eim/db": "workspace:*",
+    "@eim/domain": "workspace:*",
+    "@eim/observability": "workspace:*",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
