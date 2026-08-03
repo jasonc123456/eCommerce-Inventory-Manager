@@ -8,7 +8,7 @@
 # container (node_modules, .next, dist) are owned by the host user rather than
 # root. Root-owned files inside a bind-mounted workspace break both the dev
 # server and git, and are tedious to undo.
-FROM node:24-bookworm-slim
+FROM node:26-bookworm-slim
 
 ARG DEV_UID=1001
 ARG DEV_GID=1001
