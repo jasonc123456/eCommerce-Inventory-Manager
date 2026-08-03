@@ -23,7 +23,7 @@
   "devDependencies": {
     "@types/node": "catalog:",
     "@types/pg": "catalog:",
-    "esbuild": "0.25.12",
+    "esbuild": "0.28.1",
     "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
