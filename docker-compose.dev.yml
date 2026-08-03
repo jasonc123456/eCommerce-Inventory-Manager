@@ -60,16 +60,22 @@ services:
     image: postgres:18-bookworm
     container_name: eim-dev-postgres
     restart: unless-stopped
-    # Runs as the host owner so the bind-mounted data directory stays readable
-    # without sudo, matching the production ownership model (D-142).
-    user: "${DEV_UID:-1001}:${DEV_GID:-1001}"
     environment:
       POSTGRES_USER: eim
       POSTGRES_PASSWORD: eim
       POSTGRES_DB: eim
-      PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-      - ./.devdata/postgres:/var/lib/postgresql/data
+      # A named volume, not a bind mount, and deliberately so. Docker creates a
+      # missing bind-mount source as root, which a non-root postgres then cannot
+      # write, so a fresh clone would fail to boot until somebody ran mkdir and
+      # chown by hand. Production is the opposite case and uses a bind mount
+      # owned by the deployment administrator (D-142); that model belongs to the
+      # untracked production compose file, not to this one.
+      #
+      # Mounted at the parent rather than at PGDATA because that is where the
+      # image declares its volume, which leaves the image's own PGDATA layout
+      # alone instead of overriding it.
+      - postgres-data:/var/lib/postgresql
     ports:
       # Exposed on loopback only, so a psql or a GUI client on the host can
       # connect without making the database reachable from the network.
@@ -97,3 +103,8 @@ services:
     ports:
       # Web UI for reading captured mail.
       - "127.0.0.1:8025:8025"
+
+volumes:
+  # Removed by `docker compose -f docker-compose.dev.yml down -v`, which is the
+  # supported way to start from an empty database.
+  postgres-data:

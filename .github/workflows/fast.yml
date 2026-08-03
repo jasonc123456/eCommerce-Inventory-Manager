@@ -92,10 +92,13 @@ jobs:
         # Run from the pinned container image rather than a marketplace action,
         # so the scanner itself is one fewer piece of third-party workflow code
         # with access to the repository.
+        #
+        # Pinned by digest as well as tag, for the same reason the actions above
+        # are pinned by SHA: a tag can be repointed, a digest cannot.
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/repo" \
-            ghcr.io/gitleaks/gitleaks:v8.30.2 \
+            ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f \
             detect --source=/repo --redact --verbose --no-banner
 
   licenses:

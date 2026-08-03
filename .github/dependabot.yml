@@ -18,6 +18,13 @@ updates:
       interval: weekly
       day: tuesday
     open-pull-requests-limit: 5
+    ignore:
+      # D-006 fixes the runtime at Node 24 LTS. Type definitions describe the
+      # runtime, so a major bump here does not upgrade anything: it makes the
+      # compiler describe APIs the deployed Node does not have. This entry is
+      # released deliberately, together with the Node baseline, not weekly.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
       # Type definitions and linters move constantly and almost never break
       # anything at runtime.
@@ -61,3 +68,13 @@ updates:
     schedule:
       interval: weekly
       day: tuesday
+    ignore:
+      # Same reasoning as @types/node above: the base image major version is the
+      # Node baseline itself (D-006), and moving it is a decision with a
+      # migration behind it rather than a dependency bump.
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
+      # PostgreSQL 18 is fixed by D-006 and a major upgrade needs a dump and
+      # restore, which is a release procedure, not a pull request.
+      - dependency-name: postgres
+        update-types: ["version-update:semver-major"]
