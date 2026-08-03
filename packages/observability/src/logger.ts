@@ -84,7 +84,17 @@ export function createLogger(config: LoggerConfig): Logger {
       ...options,
       transport: {
         target: 'pino-pretty',
-        options: { colorize: true, translateTime: 'HH:MM:ss.l', ignore: 'pid,hostname' },
+        // `sync` matters more than it looks. This transport runs in a worker
+        // thread, so a short-lived process can reach the end of its work with
+        // formatted lines still queued in the worker. Writing synchronously
+        // means anything already logged has reached the terminal by the time
+        // the caller decides to exit.
+        options: {
+          colorize: true,
+          translateTime: 'HH:MM:ss.l',
+          ignore: 'pid,hostname',
+          sync: true,
+        },
       },
     });
   }

@@ -39,14 +39,18 @@ jobs:
       - name: Start the stack
         run: docker compose -f docker-compose.dev.yml up -d --build --wait
 
+      # Bounded, because a migration that hangs is a different defect from one
+      # that fails, and the job timeout reports neither of them for 25 minutes.
+      # Section 23 runs this on every deployment, so it finishing at all is part
+      # of the contract being tested.
       - name: Apply migrations
-        run: docker compose -f docker-compose.dev.yml exec -T -u dev dev pnpm --filter @eim/db migrate
+        run: timeout 300 docker compose -f docker-compose.dev.yml exec -T -u dev dev pnpm --filter @eim/db migrate
 
       - name: Migrations are idempotent
         # Running twice must be a no-op. Section 23 runs migrations on every
         # deployment, so a second run happens on every restart of an unchanged
         # build; if that were not safe, the failure would be in production.
-        run: docker compose -f docker-compose.dev.yml exec -T -u dev dev pnpm --filter @eim/db migrate
+        run: timeout 300 docker compose -f docker-compose.dev.yml exec -T -u dev dev pnpm --filter @eim/db migrate
 
       - name: Show logs on failure
         if: failure()

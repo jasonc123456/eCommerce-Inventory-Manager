@@ -54,9 +54,28 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((error: unknown) => {
+try {
+  await main();
+  finish(0);
+} catch (error: unknown) {
   // The logger may not exist yet if configuration itself failed, so this path
   // deliberately uses stderr directly rather than assuming it does.
   console.error(error instanceof Error ? error.message : 'migration failed');
-  process.exitCode = 1;
-});
+  finish(1);
+}
+
+/**
+ * Ends the process once the work is done, rather than waiting for the event
+ * loop to drain.
+ *
+ * A one-shot task must not depend on every library it touched agreeing to let
+ * go. In development the logger writes through pino's pretty transport, which
+ * is a worker thread and keeps the process alive after the pool has closed and
+ * the migrations have been applied; the symptom is a deployment step that
+ * prints its result and then hangs until something times out. Logging is
+ * synchronous, so there is nothing left in flight at this point.
+ */
+function finish(code: number): void {
+  process.exitCode = code;
+  process.exit(code);
+}
