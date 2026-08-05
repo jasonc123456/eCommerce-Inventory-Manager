@@ -1,6 +1,7 @@
 import { relations } from 'drizzle-orm';
 import {
   boolean,
+  customType,
   index,
   pgTable,
   text,
@@ -9,6 +10,11 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
+
+/** A PostgreSQL text array, typed as `string[]` rather than `unknown[]`. */
+const textArray = customType<{ data: string[]; driverData: string[] }>({
+  dataType: () => 'text[]',
+});
 
 /**
  * Typed access to the tenancy tables.
@@ -30,10 +36,15 @@ export const users = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     email: text('email').notNull(),
+    /** What the user actually typed, for addressing mail (section 19). */
+    emailDisplay: text('email_display'),
     displayName: text('display_name'),
     status: text('status', { enum: ['active', 'suspended', 'deleted'] })
       .notNull()
       .default('active'),
+    /** Installation-level suspension. Revokes every session everywhere. */
+    suspendedAt: timestamp('suspended_at', { withTimezone: true }),
+    suspendedReason: text('suspended_reason'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
@@ -49,6 +60,11 @@ export const businesses = pgTable(
     slug: text('slug').notNull(),
     /** D-136: quiet hours and the nightly window are business-level concepts. */
     timezone: text('timezone').notNull().default('UTC'),
+    /** Empty means no restriction, which must stay distinguishable from
+     * "restricted to nothing" (section 20). */
+    allowedEmailDomains: textArray('allowed_email_domains').notNull().default([]),
+    /** Roles for which the owner requires a second factor (section 20). */
+    requireTwoFactorRoles: textArray('require_two_factor_roles').notNull().default([]),
     status: text('status', { enum: ['active', 'suspended', 'deleted'] })
       .notNull()
       .default('active'),
@@ -73,11 +89,23 @@ export const memberships = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),
     role: text('role', { enum: membershipRoles }).notNull(),
+    /** Suspension removes this business's access without touching the user's
+     * account or their other businesses (section 20). */
+    status: text('status', { enum: ['active', 'suspended'] })
+      .notNull()
+      .default('active'),
+    suspendedAt: timestamp('suspended_at', { withTimezone: true }),
+    invitedByUserId: uuid('invited_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     unique('memberships_unique_per_user').on(table.businessId, table.userId),
+    // Carries business_id through a foreign key, as locations do. Permission
+    // grants depend on it.
+    unique('memberships_business_scoped').on(table.businessId, table.id),
     index('memberships_user_idx').on(table.userId),
   ],
 );

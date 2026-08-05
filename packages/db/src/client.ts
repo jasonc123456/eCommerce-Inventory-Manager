@@ -1,7 +1,9 @@
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import pg from 'pg';
 
+import * as audit from './schema/audit';
 import * as background from './schema/background';
+import * as identity from './schema/identity';
 import * as inventory from './schema/inventory';
 import * as tenancy from './schema/tenancy';
 
@@ -22,7 +24,7 @@ import * as tenancy from './schema/tenancy';
  */
 export type DatabasePool = pg.Pool;
 
-export const schema = { ...tenancy, ...inventory, ...background };
+export const schema = { ...tenancy, ...inventory, ...background, ...identity, ...audit };
 export type Schema = typeof schema;
 export type Database = NodePgDatabase<Schema>;
 
