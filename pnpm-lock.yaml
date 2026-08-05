@@ -394,6 +394,9 @@ importers:
       '@eim/audit':
         specifier: workspace:*
         version: link:../audit
+      '@eim/authz':
+        specifier: workspace:*
+        version: link:../authz
       '@eim/crypto':
         specifier: workspace:*
         version: link:../crypto

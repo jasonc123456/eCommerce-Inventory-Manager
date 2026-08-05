@@ -40,3 +40,14 @@ export {
   type SessionService,
   type SessionWriter,
 } from './sessions';
+
+export {
+  createMembershipService,
+  domainAllowed,
+  type AcceptInvitationResult,
+  type GrantSpecification,
+  type InviteInput,
+  type InviteResult,
+  type MembershipService,
+  type MembershipWriter,
+} from './memberships';
