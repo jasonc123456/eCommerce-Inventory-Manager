@@ -49,6 +49,7 @@ export default defineConfig({
         'packages/authz/src/**/*.ts',
         'packages/config/src/**/*.ts',
         'packages/crypto/src/**/*.ts',
+        'packages/identity/src/**/*.ts',
         'packages/mail/src/**/*.ts',
         'packages/observability/src/**/*.ts',
       ],
@@ -68,6 +69,7 @@ export default defineConfig({
         // describer, which is tested; the rest is configuration handed to a
         // library and would need a live SMTP server to mean anything.
         'packages/mail/src/mailer.ts',
+        'packages/identity/src/sessions.ts',
       ],
       thresholds: {
         // Section 25: at least 90% branch coverage in the inventory,
