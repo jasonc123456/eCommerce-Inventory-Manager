@@ -12,11 +12,17 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@eim/audit": "workspace:*",
     "@eim/authz": "workspace:*",
     "@eim/config": "workspace:*",
+    "@eim/crypto": "workspace:*",
     "@eim/db": "workspace:*",
     "@eim/domain": "workspace:*",
+    "@eim/identity": "workspace:*",
+    "@eim/mail": "workspace:*",
     "@eim/observability": "workspace:*",
+    "@eim/ratelimit": "workspace:*",
+    "drizzle-orm": "catalog:",
     "next": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"

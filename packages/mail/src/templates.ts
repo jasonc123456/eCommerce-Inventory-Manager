@@ -53,6 +53,14 @@ export interface MagicLinkContext extends BrandContext {
   readonly expiresInMinutes: number;
   /** Shown so a recipient who did not ask can recognise an unfamiliar device. */
   readonly requestedFrom?: string;
+  /**
+   * The local path the link points at, without the fragment.
+   *
+   * Defaults to the sign-in confirmation. Installation setup uses the same
+   * template with a different destination, and giving it a parameter is better
+   * than a second near-identical template that would drift from this one.
+   */
+  readonly path?: string;
 }
 
 export function renderMagicLink(
@@ -61,7 +69,7 @@ export function renderMagicLink(
 ): RenderedMessage {
   // The fragment. Section 19 is explicit that the bearer token must not be in
   // the path or the query, where it would be logged by everything in the way.
-  const url = `${trimTrailingSlash(context.publicUrl)}/sign-in/link#${encodeURIComponent(context.token)}`;
+  const url = `${trimTrailingSlash(context.publicUrl)}${context.path ?? '/sign-in/link'}#${encodeURIComponent(context.token)}`;
 
   const intro =
     overrides.signInIntro ??

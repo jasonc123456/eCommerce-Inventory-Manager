@@ -29,6 +29,7 @@ describe('createHasher', () => {
     const domains: readonly HashDomain[] = [
       'session',
       'browser_binding',
+      'pending_authentication',
       'magic_link',
       'email_code',
       'recovery_code',

@@ -20,7 +20,18 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
 
-  transpilePackages: ['@eim/authz', '@eim/config', '@eim/db', '@eim/domain', '@eim/observability'],
+  transpilePackages: [
+    '@eim/audit',
+    '@eim/authz',
+    '@eim/config',
+    '@eim/crypto',
+    '@eim/db',
+    '@eim/domain',
+    '@eim/identity',
+    '@eim/mail',
+    '@eim/observability',
+    '@eim/ratelimit',
+  ],
 
   // Left false so a local `next build` still fails on a type error rather than
   // deferring the discovery to CI. Linting is not configured here: Next 16

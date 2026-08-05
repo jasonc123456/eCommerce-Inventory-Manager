@@ -200,21 +200,39 @@ importers:
 
   apps/web:
     dependencies:
+      '@eim/audit':
+        specifier: workspace:*
+        version: link:../../packages/audit
       '@eim/authz':
         specifier: workspace:*
         version: link:../../packages/authz
       '@eim/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@eim/crypto':
+        specifier: workspace:*
+        version: link:../../packages/crypto
       '@eim/db':
         specifier: workspace:*
         version: link:../../packages/db
       '@eim/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@eim/identity':
+        specifier: workspace:*
+        version: link:../../packages/identity
+      '@eim/mail':
+        specifier: workspace:*
+        version: link:../../packages/mail
       '@eim/observability':
         specifier: workspace:*
         version: link:../../packages/observability
+      '@eim/ratelimit':
+        specifier: workspace:*
+        version: link:../../packages/ratelimit
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.20.3)(pg@8.22.0)
       next:
         specifier: 'catalog:'
         version: 16.2.12(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
