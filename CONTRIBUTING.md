@@ -12,7 +12,8 @@ under the same licence, and there is no contributor licence agreement to sign
 and no copyright assignment. You keep the copyright in what you write.
 
 What is required is a **Developer Certificate of Origin** sign-off on every
-commit, which is a statement that you have the right to contribute the code:
+commit in a pull request, which is a statement that you have the right to
+contribute the code:
 
 ```
 git commit -s -m "add the reconciliation repair plan"
@@ -24,6 +25,11 @@ your Git configuration. The full text of what you are certifying is at
 
 A DCO sign-off is deliberately lighter than a contributor licence agreement: it
 asks you to confirm the code is yours to give, and nothing more.
+
+The requirement is on contributions, so it does not apply to the maintainer's
+own commits: the DCO exists to record that code arriving from elsewhere may be
+distributed under this licence, and the copyright holder has nothing to certify
+to themselves. Sign-off on maintainer commits would be ceremony, not evidence.
 
 ## Getting set up
 
