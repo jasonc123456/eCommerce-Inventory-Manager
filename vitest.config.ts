@@ -44,12 +44,23 @@ export default defineConfig({
       // gain their coverage requirement when they gain behavior in M1.
       include: [
         'packages/domain/src/**/*.ts',
+        'packages/audit/src/**/*.ts',
         'packages/authz/src/**/*.ts',
         'packages/config/src/**/*.ts',
         'packages/crypto/src/**/*.ts',
         'packages/observability/src/**/*.ts',
       ],
-      exclude: ['**/*.test.ts', '**/index.ts', '**/cli/**', '**/dist/**'],
+      exclude: [
+        '**/*.test.ts',
+        '**/index.ts',
+        '**/cli/**',
+        '**/dist/**',
+        // Exercised by the integration project against a real database, which
+        // the unit project does not run. Measuring it here would report a
+        // coverage gap that the suite it belongs to already fills.
+        'packages/audit/src/query.ts',
+        'packages/audit/src/recorder.ts',
+      ],
       thresholds: {
         // Section 25: at least 90% branch coverage in the inventory,
         // authentication, authorization, and security domains.
