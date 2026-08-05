@@ -71,6 +71,7 @@ export default defineConfig({
         'packages/mail/src/mailer.ts',
         'packages/identity/src/sessions.ts',
         'packages/identity/src/challenges.ts',
+        'packages/identity/src/bootstrap.ts',
       ],
       thresholds: {
         // Section 25: at least 90% branch coverage in the inventory,

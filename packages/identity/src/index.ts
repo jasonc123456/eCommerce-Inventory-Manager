@@ -8,6 +8,16 @@ export {
 } from './policy';
 
 export {
+  createBootstrapService,
+  type BootstrapConfig,
+  type BootstrapService,
+  type BootstrapStatus,
+  type BootstrapWriter,
+  type CompleteBootstrapResult,
+  type RequestSetupLinkResult,
+} from './bootstrap';
+
+export {
   DEFAULT_CHALLENGE_POLICY,
   challengeIdFromBinding,
   createChallengeService,

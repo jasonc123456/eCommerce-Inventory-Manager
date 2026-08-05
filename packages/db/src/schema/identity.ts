@@ -95,6 +95,10 @@ export const installationBootstrap = pgTable('installation_bootstrap', {
   }),
   failedAttempts: integer('failed_attempts').notNull().default(0),
   lastAttemptAt: timestamp('last_attempt_at', { withTimezone: true }),
+  /** Keyed hash of the one-time setup link's token (migration 0004). */
+  setupTokenHash: text('setup_token_hash'),
+  setupTokenIssuedAt: timestamp('setup_token_issued_at', { withTimezone: true }),
+  setupTokenExpiresAt: timestamp('setup_token_expires_at', { withTimezone: true }),
 });
 
 // ---------------------------------------------------------------------------
