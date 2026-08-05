@@ -28,6 +28,7 @@ describe('createHasher', () => {
     const hasher = createHasher(SECRET);
     const domains: readonly HashDomain[] = [
       'session',
+      'browser_binding',
       'magic_link',
       'email_code',
       'recovery_code',

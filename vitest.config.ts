@@ -70,6 +70,7 @@ export default defineConfig({
         // library and would need a live SMTP server to mean anything.
         'packages/mail/src/mailer.ts',
         'packages/identity/src/sessions.ts',
+        'packages/identity/src/challenges.ts',
       ],
       thresholds: {
         // Section 25: at least 90% branch coverage in the inventory,

@@ -26,6 +26,7 @@ import { createHash, createHmac, hkdfSync, timingSafeEqual } from 'node:crypto';
  */
 export type HashDomain =
   | 'session'
+  | 'browser_binding'
   | 'magic_link'
   | 'email_code'
   | 'recovery_code'

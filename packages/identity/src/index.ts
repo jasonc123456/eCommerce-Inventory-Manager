@@ -8,6 +8,19 @@ export {
 } from './policy';
 
 export {
+  DEFAULT_CHALLENGE_POLICY,
+  challengeIdFromBinding,
+  createChallengeService,
+  normalizeEmail,
+  type ChallengePolicy,
+  type ChallengeService,
+  type ChallengeWriter,
+  type IssueChallengeInput,
+  type IssueChallengeResult,
+  type VerifyChallengeResult,
+} from './challenges';
+
+export {
   clearActiveBusiness,
   createSessionService,
   revokeSessionsForSecurityChange,
