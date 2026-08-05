@@ -80,9 +80,10 @@ export function normalizeAddress(value: string): string | null {
       return null;
     }
     candidate = candidate.slice(1, close);
-  } else if (candidate.includes('.') && candidate.includes(':')) {
-    // IPv4 with a port. An IPv6 address without brackets has several colons,
-    // so counting them distinguishes the two.
+  } else if (candidate.split(':').length === 2) {
+    // IPv4 with a port. Counting colons rather than looking for one, because
+    // `::ffff:203.0.113.4` also contains both a dot and a colon and truncating
+    // it at the first colon leaves nothing at all.
     candidate = candidate.slice(0, candidate.indexOf(':'));
   }
 

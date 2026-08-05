@@ -52,6 +52,12 @@ export default defineConfig({
         'packages/identity/src/**/*.ts',
         'packages/mail/src/**/*.ts',
         'packages/observability/src/**/*.ts',
+        // The web tier's security-critical pure helpers. The screens and server
+        // actions are not measured here: they need a browser and a session, and
+        // the integration and Compose tiers are where they are exercised.
+        'apps/web/src/lib/redirects.ts',
+        'apps/web/src/lib/client-address.ts',
+        'apps/web/src/lib/forms.ts',
       ],
       exclude: [
         '**/*.test.ts',
