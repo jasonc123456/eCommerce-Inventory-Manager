@@ -49,6 +49,7 @@ export default defineConfig({
         'packages/authz/src/**/*.ts',
         'packages/config/src/**/*.ts',
         'packages/crypto/src/**/*.ts',
+        'packages/mail/src/**/*.ts',
         'packages/observability/src/**/*.ts',
       ],
       exclude: [
@@ -63,6 +64,10 @@ export default defineConfig({
         'packages/audit/src/recorder.ts',
         'packages/ratelimit/src/limiter.ts',
         'packages/ratelimit/src/pressure.ts',
+        // Wraps nodemailer's transport. What is worth asserting is the failure
+        // describer, which is tested; the rest is configuration handed to a
+        // library and would need a live SMTP server to mean anything.
+        'packages/mail/src/mailer.ts',
       ],
       thresholds: {
         // Section 25: at least 90% branch coverage in the inventory,

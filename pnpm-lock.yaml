@@ -21,6 +21,9 @@ catalogs:
     '@types/node':
       specifier: 24.13.3
       version: 24.13.3
+    '@types/nodemailer':
+      specifier: 8.0.1
+      version: 8.0.1
     '@types/pg':
       specifier: 8.20.3
       version: 8.20.3
@@ -72,6 +75,9 @@ catalogs:
     next:
       specifier: 16.2.12
       version: 16.2.12
+    nodemailer:
+      specifier: 9.0.3
+      version: 9.0.3
     pg:
       specifier: 8.22.0
       version: 8.22.0
@@ -376,6 +382,25 @@ importers:
       fast-check:
         specifier: 'catalog:'
         version: 4.9.0
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@24.13.3)(@vitest/coverage-v8@4.1.10)(vite@8.2.0(@types/node@24.13.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1))
+
+  packages/mail:
+    dependencies:
+      nodemailer:
+        specifier: 'catalog:'
+        version: 9.0.3
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.13.3
+      '@types/nodemailer':
+        specifier: 'catalog:'
+        version: 8.0.1
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -1631,6 +1656,9 @@ packages:
 
   '@types/node@24.13.3':
     resolution: {integrity: sha512-Dh8vAsV36ig5wa9OX4pXvMc9D3Veibfw2wix0CUwYODLD8nkj9UsLjASr49nPg+2eKzxhBV+v7L8pXvT4e639Q==}
+
+  '@types/nodemailer@8.0.1':
+    resolution: {integrity: sha512-PxpaInm8V1JQDd4j0ds5HfvWQk8JupS1C0Picb96QJsrrRDjBH+DlK7L4ZdNSqNULhiZRQHc40nLVShaGxXAMw==}
 
   '@types/pg@8.20.3':
     resolution: {integrity: sha512-4Tvg+HO6+oQaAkpT8GTYoSExzpGGZz532GXgbbCElWJQeQdMozBWxEKNBhJJpHFjWXsMxqPbyypvj/89FWNoSQ==}
@@ -3008,6 +3036,10 @@ packages:
   node-releases@2.0.51:
     resolution: {integrity: sha512-wRNIrw4DmVLKQlbgOMdkMx27Wrpzes2hh5Jtbi2bjPd+4wJstWIqP5A+lscnqbm0xxmT5Bpg8Lec5ItEBwx6BQ==}
     engines: {node: '>=18'}
+
+  nodemailer@9.0.3:
+    resolution: {integrity: sha512-n+YP+NKwR5zRWa60k3GiQ6Q3B4KXCoAw40dAKeCtYn020iNN74aWK2liXIC3ZEATeGql7we3tE3t8QwhY0eskw==}
+    engines: {node: '>=6.0.0'}
 
   non-error@0.1.0:
     resolution: {integrity: sha512-TMB1uHiGsHRGv1uYclfhivcnf0/PdFp2pNqRxXjncaAsjYMoisaQJI+SSZCqRq+VliwRTC8tsMQfmrWjDMhkPQ==}
@@ -4695,6 +4727,10 @@ snapshots:
     dependencies:
       undici-types: 7.18.2
 
+  '@types/nodemailer@8.0.1':
+    dependencies:
+      '@types/node': 24.13.3
+
   '@types/pg@8.20.3':
     dependencies:
       '@types/node': 24.13.3
@@ -6204,6 +6240,8 @@ snapshots:
       semver: 6.3.1
 
   node-releases@2.0.51: {}
+
+  nodemailer@9.0.3: {}
 
   non-error@0.1.0: {}
 
