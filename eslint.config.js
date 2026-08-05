@@ -137,6 +137,25 @@ export default tseslint.config(
     },
   },
 
+  // Cryptography: node:crypto and nothing else. A dependency here would widen
+  // the trust boundary around key material and authentication secrets, and the
+  // package is deliberately small enough to be read in full before trusting it.
+  {
+    files: ['packages/crypto/**/*.ts'],
+    rules: restrict([
+      { group: ['next', 'next/*'], message: 'Framework imports are not allowed here.' },
+      { group: ['react', 'react-dom'], message: 'UI imports are not allowed here.' },
+      {
+        group: ['pg', 'drizzle-orm', 'drizzle-orm/*', '@eim/db', '@eim/db/*'],
+        message: 'Cryptography must not depend on persistence.',
+      },
+      {
+        group: ['node:fs', 'node:fs/*', 'node:net', 'node:http', 'node:https'],
+        message: 'Direct I/O is not allowed here.',
+      },
+    ]),
+  },
+
   // Canonical domain: pure calculation only.
   {
     files: ['packages/domain/**/*.ts', 'packages/authz/**/*.ts'],

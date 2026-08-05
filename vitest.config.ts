@@ -46,6 +46,7 @@ export default defineConfig({
         'packages/domain/src/**/*.ts',
         'packages/authz/src/**/*.ts',
         'packages/config/src/**/*.ts',
+        'packages/crypto/src/**/*.ts',
         'packages/observability/src/**/*.ts',
       ],
       exclude: ['**/*.test.ts', '**/index.ts', '**/cli/**', '**/dist/**'],
@@ -59,6 +60,12 @@ export default defineConfig({
           statements: 90,
         },
         'packages/authz/src/**/*.ts': {
+          branches: 90,
+          functions: 90,
+          lines: 90,
+          statements: 90,
+        },
+        'packages/crypto/src/**/*.ts': {
           branches: 90,
           functions: 90,
           lines: 90,
