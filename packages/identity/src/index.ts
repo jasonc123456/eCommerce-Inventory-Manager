@@ -51,3 +51,22 @@ export {
   type MembershipService,
   type MembershipWriter,
 } from './memberships';
+
+export {
+  createPasskeyService,
+  type AuthenticationResult,
+  type PasskeyService,
+  type PasskeyWriter,
+  type RegistrationResult,
+  type RelyingParty,
+} from './passkeys';
+
+export {
+  createTwoFactorService,
+  secondFactorSatisfied,
+  type DisableTwoFactorResult,
+  type TotpEnrollment,
+  type TotpVerification,
+  type TwoFactorService,
+  type TwoFactorWriter,
+} from './twofactor';

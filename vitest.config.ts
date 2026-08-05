@@ -73,6 +73,8 @@ export default defineConfig({
         'packages/identity/src/challenges.ts',
         'packages/identity/src/bootstrap.ts',
         'packages/identity/src/memberships.ts',
+        'packages/identity/src/passkeys.ts',
+        'packages/identity/src/twofactor.ts',
       ],
       thresholds: {
         // Section 25: at least 90% branch coverage in the inventory,

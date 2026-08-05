@@ -18,7 +18,9 @@
     "@eim/authz": "workspace:*",
     "@eim/crypto": "workspace:*",
     "@eim/db": "workspace:*",
-    "drizzle-orm": "catalog:"
+    "@simplewebauthn/server": "catalog:",
+    "drizzle-orm": "catalog:",
+    "otpauth": "catalog:"
   },
   "devDependencies": {
     "@eim/testing": "workspace:*",
