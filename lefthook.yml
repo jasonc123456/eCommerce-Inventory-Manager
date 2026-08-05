@@ -72,3 +72,11 @@ pre-push:
       # The last cheap chance to catch a break before it reaches CI. Pushing is
       # rare enough that a few seconds is acceptable here.
       run: pnpm typecheck
+
+    - name: format
+      # The whole-repository check, which is not the same as the pre-commit
+      # pass. That one formats the files being staged; this one is what CI runs,
+      # and the two can disagree — Prettier is occasionally not idempotent, so a
+      # file formatted once can still be reformatted by a second pass. Catching
+      # it here costs a second and saves a red build for a stray line break.
+      run: pnpm format:check

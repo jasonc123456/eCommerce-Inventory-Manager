@@ -544,15 +544,13 @@ async function writeGrants(
     }
 
     if (scope.kind === 'connections' && scope.connectionIds.length > 0) {
-      await tx
-        .insert(permissionGrantConnections)
-        .values(
-          scope.connectionIds.map((connectionId) => ({
-            businessId,
-            grantId: row.id,
-            connectionId,
-          })),
-        );
+      await tx.insert(permissionGrantConnections).values(
+        scope.connectionIds.map((connectionId) => ({
+          businessId,
+          grantId: row.id,
+          connectionId,
+        })),
+      );
     }
   }
 }
