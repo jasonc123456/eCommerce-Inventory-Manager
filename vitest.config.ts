@@ -45,6 +45,7 @@ export default defineConfig({
       include: [
         'packages/domain/src/**/*.ts',
         'packages/audit/src/**/*.ts',
+        'packages/ratelimit/src/**/*.ts',
         'packages/authz/src/**/*.ts',
         'packages/config/src/**/*.ts',
         'packages/crypto/src/**/*.ts',
@@ -60,6 +61,8 @@ export default defineConfig({
         // coverage gap that the suite it belongs to already fills.
         'packages/audit/src/query.ts',
         'packages/audit/src/recorder.ts',
+        'packages/ratelimit/src/limiter.ts',
+        'packages/ratelimit/src/pressure.ts',
       ],
       thresholds: {
         // Section 25: at least 90% branch coverage in the inventory,
