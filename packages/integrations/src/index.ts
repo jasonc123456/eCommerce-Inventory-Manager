@@ -58,3 +58,13 @@ export {
 } from './ebay/oauth';
 
 export { configuredEnvironments, createIdentityReader, parseIdentity } from './ebay/identity';
+
+export {
+  createEbayReadiness,
+  type AssessInput,
+  type EbayReadiness,
+  type ReadinessCheck,
+  type ReadinessOptions,
+  type ReadinessReport,
+  type ReadinessStatus,
+} from './ebay/readiness';
