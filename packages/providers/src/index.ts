@@ -28,6 +28,51 @@ export {
 } from './outcomes';
 
 export {
+  categorize,
+  classifyAddress,
+  isMetadataAddress,
+  matches,
+  normalize as normalizeAddress,
+  type AddressPolicy,
+  type AddressVerdict,
+} from './http/addresses';
+
+export {
+  canonicalize,
+  originOf,
+  validateIntegrationUrl,
+  type UrlPolicy,
+  type UrlVerdict,
+} from './http/url-policy';
+
+export {
+  createHttpClient,
+  type HttpClient,
+  type HttpClientOptions,
+  type HttpFailureKind,
+  type HttpOutcome,
+  type HttpRequest,
+  type HttpResponse,
+  type Resolver,
+  type Transport,
+  type TransportRequest,
+  type TransportResponse,
+} from './http/client';
+
+export {
+  DEAD_LETTER_WINDOW_MS,
+  DELAY_SCHEDULE_MS,
+  MAX_ATTEMPTS,
+  decideRetry,
+  parseRetryAfter,
+  type DeadLetterReason,
+  type RetryContext,
+  type RetryDecision,
+} from './http/backoff';
+
+export { redactHeaders, redactUrl, summarizeBody } from './http/redaction';
+
+export {
   FakeChannelAdapter,
   entityKey,
   type FakeAdapterOptions,

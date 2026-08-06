@@ -52,6 +52,10 @@ export default defineConfig({
         'packages/identity/src/**/*.ts',
         'packages/mail/src/**/*.ts',
         'packages/observability/src/**/*.ts',
+        // The provider HTTP layer, which is where section 19's SSRF boundary
+        // actually lives. The transport itself is excluded below; the policy
+        // that decides what may be reached is measured here.
+        'packages/providers/src/http/**/*.ts',
         // The web tier's security-critical pure helpers. The screens and server
         // actions are not measured here: they need a browser and a session, and
         // the integration and Compose tiers are where they are exercised.
@@ -81,6 +85,11 @@ export default defineConfig({
         'packages/identity/src/memberships.ts',
         'packages/identity/src/passkeys.ts',
         'packages/identity/src/twofactor.ts',
+        // Node's HTTP client with a pinned address, a byte ceiling, and a
+        // timeout. Exercising it needs a real listening socket, and what the
+        // assertions would prove is that Node can make a request. The decisions
+        // it carries out are all in client.ts, which is measured.
+        'packages/providers/src/http/node-transport.ts',
       ],
       thresholds: {
         // Section 25: at least 90% branch coverage in the inventory,
@@ -98,6 +107,15 @@ export default defineConfig({
           statements: 90,
         },
         'packages/crypto/src/**/*.ts': {
+          branches: 90,
+          functions: 90,
+          lines: 90,
+          statements: 90,
+        },
+        // The SSRF boundary is a security domain in section 25's sense: what it
+        // refuses is the protection, so an unmeasured branch here is an
+        // unmeasured refusal.
+        'packages/providers/src/http/**/*.ts': {
           branches: 90,
           functions: 90,
           lines: 90,
