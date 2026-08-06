@@ -36,7 +36,9 @@ export type HashDomain =
   | 'setup_secret'
   | 'invitation'
   /** Section 19: routine logs identify an address by fingerprint, not by value. */
-  | 'email_fingerprint';
+  | 'email_fingerprint'
+  /** Sections 13, 14: the single-use state carried through a provider's consent screen. */
+  | 'connection_authorization';
 
 export interface KeyedHasher {
   /**

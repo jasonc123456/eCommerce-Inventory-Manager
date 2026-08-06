@@ -251,3 +251,35 @@ export const providerQuotaWindows = pgTable(
     ),
   ],
 );
+
+/**
+ * The in-flight half of connecting a provider (sections 13, 14).
+ *
+ * `migrations/0007_connection_authorizations.sql` is the source of truth. The
+ * state value itself is never stored, only a keyed hash of it.
+ */
+export const connectionAuthorizations = pgTable(
+  'connection_authorizations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    businessId: uuid('business_id')
+      .notNull()
+      .references(() => businesses.id, { onDelete: 'cascade' }),
+    provider: text('provider', { enum: providerNames }).notNull(),
+    environment: text('environment', { enum: connectionEnvironments }).notNull(),
+    connectionId: uuid('connection_id'),
+    initiatedByUserId: uuid('initiated_by_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    stateHash: text('state_hash').notNull(),
+    storeOrigin: text('store_origin'),
+    redirectPath: text('redirect_path').notNull().default('/connections'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    consumedAt: timestamp('consumed_at', { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex('connection_authorizations_state_unique').on(table.stateHash),
+    index('connection_authorizations_expiry').on(table.expiresAt),
+  ],
+);
