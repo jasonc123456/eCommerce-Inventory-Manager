@@ -89,7 +89,11 @@ It contends for the scheduler lease, wins if no other replica holds it, and
 drives the projection cadence.
 
 Mailpit captures every outbound message at <http://localhost:8025>, so
-development can never send real authentication mail by accident.
+development can never send real authentication mail by accident. The guarantee
+is `docker-compose.dev.yml` pointing `EIM_SMTP_HOST` at the capture container,
+not anything in the code: no module decides whether mail is real, so a
+deployment configured with a live relay sends live mail whatever `NODE_ENV`
+says.
 
 ## Commands
 

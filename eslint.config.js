@@ -40,6 +40,12 @@ export default tseslint.config(
       '**/node_modules/**',
       '**/dist/**',
       '**/.next/**',
+      // A deployment that serves from .next also has the release being built
+      // and the one it replaced sitting beside it. Both are build output, and
+      // linting compiled chunks fails outright rather than merely wasting time,
+      // because the type-aware rules have no tsconfig covering them.
+      '**/.next.build/**',
+      '**/.next.old/**',
       '**/coverage/**',
       '**/drizzle/**',
       // Plain-JavaScript config files. They are outside every tsconfig, so the

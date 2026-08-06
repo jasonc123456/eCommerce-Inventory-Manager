@@ -4,6 +4,11 @@ node_modules/
 # Build output
 dist/
 .next/
+# A deployment that serves from .next builds the next release into .next.build
+# and keeps the one it replaced in .next.old, so both appear in a working tree
+# that is also a live installation.
+.next.build/
+.next.old/
 out/
 *.tsbuildinfo
 

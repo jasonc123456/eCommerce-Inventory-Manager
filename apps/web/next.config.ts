@@ -20,6 +20,13 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
 
+  // Where the build lands. Overridable so a deployment that serves from the
+  // build directory can build the next release somewhere else and swap it in,
+  // rather than replacing the output underneath a server that is still reading
+  // it. A failed build then leaves the running release untouched, which is the
+  // property that makes a deploy safe to attempt at any time.
+  distDir: process.env['NEXT_DIST_DIR'] ?? '.next',
+
   transpilePackages: [
     '@eim/audit',
     '@eim/authz',

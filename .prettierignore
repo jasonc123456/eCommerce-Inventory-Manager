@@ -1,6 +1,8 @@
 node_modules/
 dist/
 .next/
+.next.build/
+.next.old/
 coverage/
 pnpm-lock.yaml
 packages/db/drizzle/
