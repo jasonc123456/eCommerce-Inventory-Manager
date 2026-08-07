@@ -105,6 +105,23 @@ export {
 } from './ebay/notifications/destination';
 
 export {
+  createNotificationIntake,
+  type IntakeOptions,
+  type IntakeRefusal,
+  type IntakeResult,
+  type NotificationIntake,
+} from './ebay/notifications/intake';
+
+export {
+  createMarketplaceDeletion,
+  type DeletionOptions,
+  type DeletionRefusal,
+  type DeletionResult,
+  type DeletionSummary,
+  type MarketplaceDeletion,
+} from './ebay/notifications/deletion';
+
+export {
   TOPIC_FAMILIES,
   classifyTopic,
   createNotificationTopics,
