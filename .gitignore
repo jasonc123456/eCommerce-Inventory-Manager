@@ -57,3 +57,6 @@ uploads/
 # hardlinks cannot cross filesystems, and node_modules lives on the bind-mounted
 # workspace. It is a cache: safe to delete, expensive to re-download.
 .pnpm-store/
+
+# Knowledge-graph output from the graphify tool. Derived from the tree; not part of it.
+graphify-out/

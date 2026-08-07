@@ -1,7 +1,16 @@
-import { connectionReadinessChecks, connectionScopes, connections, type Database } from '@eim/db';
+import { connectionScopes, connections, type Database } from '@eim/db';
 import type { HttpClient } from '@eim/providers';
 import { and, eq } from 'drizzle-orm';
 
+import {
+  readRecordedChecks,
+  recordChecks,
+  summarizeChecks,
+  unknownCheck,
+  type ReadinessCheck,
+  type ReadinessReport,
+  type ReadinessStatus,
+} from '../readiness';
 import { hostsFor, type EbayEnvironment } from './environment';
 import { CAPABILITY_SCOPES, supports } from './scopes';
 
@@ -30,26 +39,7 @@ import { CAPABILITY_SCOPES, supports } from './scopes';
  * collapsing them sends the operator to fix the wrong thing.
  */
 
-export type ReadinessStatus = 'pass' | 'warn' | 'fail' | 'unknown';
-
-export interface ReadinessCheck {
-  readonly name: string;
-  readonly status: ReadinessStatus;
-  /** One sentence, meant for the person who has to act on it. */
-  readonly summary: string;
-  /** Structured evidence for the interface. Never a credential. */
-  readonly detail: Readonly<Record<string, unknown>>;
-}
-
-export interface ReadinessReport {
-  readonly connectionId: string;
-  readonly checks: readonly ReadinessCheck[];
-  /** Capabilities whose prerequisites all pass. */
-  readonly available: readonly string[];
-  /** Capabilities blocked, with the check that blocks each. */
-  readonly blocked: readonly { readonly capability: string; readonly because: string }[];
-  readonly checkedAt: Date;
-}
+export type { ReadinessCheck, ReadinessReport, ReadinessStatus };
 
 /**
  * Which checks a capability depends on.
@@ -177,23 +167,15 @@ export function createEbayReadiness(options: ReadinessOptions): EbayReadiness {
         checks.unshift(reachabilityFrom(checks));
       }
 
-      await record(db, input.businessId, input.connectionId, checks, now);
+      await recordChecks(db, input.businessId, input.connectionId, checks, now);
 
       return summarize(input.connectionId, checks, granted, now);
     },
 
     async read(input) {
-      const rows = await db
-        .select()
-        .from(connectionReadinessChecks)
-        .where(
-          and(
-            eq(connectionReadinessChecks.connectionId, input.connectionId),
-            eq(connectionReadinessChecks.businessId, input.businessId),
-          ),
-        );
+      const recorded = await readRecordedChecks(db, input.businessId, input.connectionId);
 
-      if (rows.length === 0) {
+      if (recorded === null) {
         return null;
       }
 
@@ -204,22 +186,7 @@ export function createEbayReadiness(options: ReadinessOptions): EbayReadiness {
           .where(eq(connectionScopes.connectionId, input.connectionId))
       ).map((row) => row.scope);
 
-      const checks = rows.map((row) => ({
-        name: row.checkName,
-        status: row.status,
-        summary: row.summary,
-        detail: (row.detail ?? {}) as Record<string, unknown>,
-      }));
-
-      // The newest recorded check. They are written together, so they agree —
-      // but reading the maximum rather than any one of them means a future
-      // partial refresh reports the freshest answer rather than an arbitrary one.
-      const checkedAt = rows.reduce<Date>(
-        (latest, row) => (row.checkedAt > latest ? row.checkedAt : latest),
-        new Date(0),
-      );
-
-      return summarize(input.connectionId, checks, granted, checkedAt);
+      return summarize(input.connectionId, recorded.checks, granted, recorded.checkedAt);
     },
   };
 }
@@ -504,10 +471,6 @@ function reachabilityFrom(checks: readonly ReadinessCheck[]): ReadinessCheck {
 
 // ---------------------------------------------------------------------------
 
-function unknownCheck(name: string, summary: string): ReadinessCheck {
-  return { name, status: 'unknown', summary, detail: {} };
-}
-
 async function get(
   context: CallContext,
   path: string,
@@ -554,73 +517,25 @@ function firstBoolean(payload: Record<string, unknown>, keys: readonly string[])
   return null;
 }
 
-async function record(
-  db: Database,
-  businessId: string,
-  connectionId: string,
-  checks: readonly ReadinessCheck[],
-  now: Date,
-): Promise<void> {
-  await db.transaction(async (tx) => {
-    // Replaced wholesale rather than merged: a check that stopped being run
-    // would otherwise keep its last answer forever, and an old `pass` is worse
-    // than no answer at all.
-    await tx
-      .delete(connectionReadinessChecks)
-      .where(eq(connectionReadinessChecks.connectionId, connectionId));
-
-    if (checks.length === 0) {
-      return;
-    }
-
-    await tx.insert(connectionReadinessChecks).values(
-      checks.map((check) => ({
-        businessId,
-        connectionId,
-        checkName: check.name,
-        status: check.status,
-        summary: check.summary,
-        detail: check.detail,
-        checkedAt: now,
-      })),
-    );
-  });
-}
-
 function summarize(
   connectionId: string,
   checks: readonly ReadinessCheck[],
   granted: readonly string[],
   checkedAt: Date,
 ): ReadinessReport {
-  const byName = new Map(checks.map((check) => [check.name, check]));
-  const available: string[] = [];
-  const blocked: { capability: string; because: string }[] = [];
+  // A scope this connection was not granted blocks the capability before any
+  // account condition is considered: no amount of correct setup substitutes for
+  // permission.
+  const ungranted = Object.keys(CAPABILITY_CHECKS).filter(
+    (capability) => CAPABILITY_SCOPES[capability] !== undefined && !supports(granted, capability),
+  );
 
-  for (const [capability, required] of Object.entries(CAPABILITY_CHECKS)) {
-    // A scope this connection was not granted blocks the capability before any
-    // account condition is considered: no amount of correct setup substitutes
-    // for permission.
-    if (CAPABILITY_SCOPES[capability] !== undefined && !supports(granted, capability)) {
-      blocked.push({ capability, because: 'scopes' });
-      continue;
-    }
-
-    // `unknown` blocks as firmly as `fail`. A capability enabled on the
-    // strength of a check that could not be performed is one that fails on its
-    // first real use, which is the moment it matters most.
-    const blocker = required.find((name) => {
-      const check = byName.get(name);
-
-      return check === undefined || check.status === 'fail' || check.status === 'unknown';
-    });
-
-    if (blocker === undefined) {
-      available.push(capability);
-    } else {
-      blocked.push({ capability, because: blocker });
-    }
-  }
-
-  return { connectionId, checks, available, blocked, checkedAt };
+  return summarizeChecks({
+    connectionId,
+    checks,
+    requirements: CAPABILITY_CHECKS,
+    ungranted,
+    ungrantedBecause: 'scopes',
+    checkedAt,
+  });
 }

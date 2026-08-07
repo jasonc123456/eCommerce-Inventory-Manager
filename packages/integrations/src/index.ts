@@ -60,14 +60,64 @@ export {
 export { configuredEnvironments, createIdentityReader, parseIdentity } from './ebay/identity';
 
 export {
+  readRecordedChecks,
+  recordChecks,
+  summarizeChecks,
+  unknownCheck,
+  type ReadinessCheck,
+  type ReadinessReport,
+  type ReadinessStatus,
+  type SummarizeInput,
+} from './readiness';
+
+export {
   createEbayReadiness,
   type AssessInput,
   type EbayReadiness,
-  type ReadinessCheck,
   type ReadinessOptions,
-  type ReadinessReport,
-  type ReadinessStatus,
 } from './ebay/readiness';
+
+export { describeStore, sameOrigin, type StoreVerdict, type WooStore } from './woocommerce/store';
+
+export {
+  classifyStatus,
+  clientForConnection,
+  createWooClient,
+  headerValue,
+  nextPageLink,
+  parseJsonArray as parseWooArray,
+  parseJsonObject as parseWooObject,
+  totalPages,
+  type WooCall,
+  type WooClient,
+  type WooClientOptions,
+  type WooCredentials,
+  type WooResponse,
+} from './woocommerce/client';
+
+export {
+  callbackUrl,
+  capabilitiesFor,
+  createWooConnections,
+  readPermissions,
+  storeFromCallback,
+  type BeginStoreConnection,
+  type BeginStoreFailure,
+  type BeginStoreResult,
+  type CompleteStoreConnection,
+  type CompleteStoreFailure,
+  type CompleteStoreResult,
+  type ManualStoreConnection,
+  type WooConnectionOptions,
+  type WooConnections,
+  type WooPermissions,
+} from './woocommerce/connection';
+
+export {
+  createWooReadiness,
+  type WooReadiness,
+  type WooReadinessOptions,
+} from './woocommerce/readiness';
 
 export {
   createImportRunner,

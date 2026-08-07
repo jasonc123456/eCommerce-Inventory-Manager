@@ -61,6 +61,12 @@ export default defineConfig({
         // and this decides what may reach it. The modules that need a database
         // are excluded below and measured by the integration project.
         'packages/integrations/src/ebay/notifications/**/*.ts',
+        // The WooCommerce store description and REST client. Both are section
+        // 19 and section 14 boundaries: one decides which address is the store
+        // and which is somebody else's network, the other decides that a
+        // credential never reaches a URL.
+        'packages/integrations/src/woocommerce/store.ts',
+        'packages/integrations/src/woocommerce/client.ts',
         // The web tier's security-critical pure helpers. The screens and server
         // actions are not measured here: they need a browser and a session, and
         // the integration and Compose tiers are where they are exercised.
@@ -138,6 +144,21 @@ export default defineConfig({
         // public endpoint and an irreversible erasure, so an unmeasured branch
         // here is an unmeasured refusal in exactly section 25's sense.
         'packages/integrations/src/ebay/notifications/**/*.ts': {
+          branches: 90,
+          functions: 90,
+          lines: 90,
+          statements: 90,
+        },
+        // Same reasoning on the WooCommerce side: what these two refuse — a
+        // private address dressed as a store, a credential in a URL — is the
+        // protection, so an unmeasured branch is an unmeasured refusal.
+        'packages/integrations/src/woocommerce/store.ts': {
+          branches: 90,
+          functions: 90,
+          lines: 90,
+          statements: 90,
+        },
+        'packages/integrations/src/woocommerce/client.ts': {
           branches: 90,
           functions: 90,
           lines: 90,
