@@ -89,6 +89,8 @@ describe('parseSignatureHeader', () => {
     for (const value of [
       'not base64 JSON at all',
       Buffer.from('[]', 'utf8').toString('base64'),
+      Buffer.from('42', 'utf8').toString('base64'),
+      Buffer.from('"a string"', 'utf8').toString('base64'),
       header({ kid: 'key-1' }),
       header({ signature: 'c2ln' }),
       header({ kid: '', signature: 'c2ln' }),

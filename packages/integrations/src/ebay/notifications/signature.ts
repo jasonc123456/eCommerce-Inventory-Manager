@@ -3,6 +3,7 @@ import { createPublicKey, createVerify, type KeyObject } from 'node:crypto';
 import type { HttpClient } from '@eim/providers';
 
 import { hostsFor, type EbayEnvironment } from '../environment';
+import { parseJsonObject } from './rest';
 
 /**
  * Proving a notification came from eBay (sections 13, 14, 19).
@@ -51,27 +52,15 @@ export interface SignatureHeader {
  * public endpoint, not an exceptional one.
  */
 export function parseSignatureHeader(value: string): SignatureHeader | null {
-  let decoded: string;
+  // `Buffer.from(..., 'base64')` does not reject invalid input; it decodes what
+  // it can and ignores the rest. Whatever comes out then has to survive being
+  // read as JSON, which is the check that actually rejects a malformed header.
+  const record = parseJsonObject(Buffer.from(value, 'base64').toString('utf8'));
 
-  try {
-    decoded = Buffer.from(value, 'base64').toString('utf8');
-  } catch {
+  if (record === null) {
     return null;
   }
 
-  let payload: unknown;
-
-  try {
-    payload = JSON.parse(decoded);
-  } catch {
-    return null;
-  }
-
-  if (typeof payload !== 'object' || payload === null) {
-    return null;
-  }
-
-  const record = payload as Record<string, unknown>;
   const keyId = record['kid'];
   const signature = record['signature'];
 
@@ -199,19 +188,12 @@ export function createPublicKeyReader(options: PublicKeyReaderOptions): PublicKe
 }
 
 function parsePublicKeyResponse(keyId: string, body: string): NotificationPublicKey | null {
-  let payload: unknown;
+  const record = parseJsonObject(body);
 
-  try {
-    payload = JSON.parse(body);
-  } catch {
+  if (record === null) {
     return null;
   }
 
-  if (typeof payload !== 'object' || payload === null) {
-    return null;
-  }
-
-  const record = payload as Record<string, unknown>;
   const material = record['key'];
   const algorithm = record['algorithm'];
   const digest = record['digest'];

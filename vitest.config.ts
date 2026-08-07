@@ -56,6 +56,11 @@ export default defineConfig({
         // actually lives. The transport itself is excluded below; the policy
         // that decides what may be reached is measured here.
         'packages/providers/src/http/**/*.ts',
+        // Notification verification, which is the other half of the same
+        // boundary: the SSRF policy decides what this application may reach,
+        // and this decides what may reach it. The modules that need a database
+        // are excluded below and measured by the integration project.
+        'packages/integrations/src/ebay/notifications/**/*.ts',
         // The web tier's security-critical pure helpers. The screens and server
         // actions are not measured here: they need a browser and a session, and
         // the integration and Compose tiers are where they are exercised.
@@ -90,6 +95,14 @@ export default defineConfig({
         // assertions would prove is that Node can make a request. The decisions
         // it carries out are all in client.ts, which is measured.
         'packages/providers/src/http/node-transport.ts',
+        // The notification modules that write to the database. Their guarantees
+        // — persist before acknowledge, one row per business, an erasure that
+        // actually erases — are only meaningful against a real PostgreSQL, and
+        // the integration project is where they are proven.
+        'packages/integrations/src/ebay/notifications/destination.ts',
+        'packages/integrations/src/ebay/notifications/topics.ts',
+        'packages/integrations/src/ebay/notifications/intake.ts',
+        'packages/integrations/src/ebay/notifications/deletion.ts',
       ],
       thresholds: {
         // Section 25: at least 90% branch coverage in the inventory,
@@ -116,6 +129,15 @@ export default defineConfig({
         // refuses is the protection, so an unmeasured branch here is an
         // unmeasured refusal.
         'packages/providers/src/http/**/*.ts': {
+          branches: 90,
+          functions: 90,
+          lines: 90,
+          statements: 90,
+        },
+        // A notification's signature is the only thing standing between a
+        // public endpoint and an irreversible erasure, so an unmeasured branch
+        // here is an unmeasured refusal in exactly section 25's sense.
+        'packages/integrations/src/ebay/notifications/**/*.ts': {
           branches: 90,
           functions: 90,
           lines: 90,
