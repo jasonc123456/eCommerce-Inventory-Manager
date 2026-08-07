@@ -21,6 +21,36 @@ export {
 } from './secrets';
 
 export {
+  CEILINGS,
+  pressureFor,
+  readEbayRateLimits,
+  verdictFor,
+  type ObserveQuota,
+  type QuotaPressure,
+  type QuotaPriority,
+  type QuotaState,
+  type QuotaVerdict,
+} from './quota-policy';
+
+export { createQuotaLedger, type QuotaLedger } from './quota';
+
+export {
+  CIRCUIT_COOLDOWN_MS,
+  CIRCUIT_THRESHOLD,
+  circuitStateOf,
+  decide as decideHealth,
+  worstPressure,
+  type CircuitState,
+} from './health-policy';
+
+export {
+  createConnectionHealth,
+  type ConnectionHealthOptions,
+  type ConnectionHealthReport,
+  type ConnectionHealthService,
+} from './health';
+
+export {
   basicAuthorization,
   credentialsFrom,
   hostsFor,

@@ -69,6 +69,13 @@ export default defineConfig({
         'packages/integrations/src/woocommerce/client.ts',
         // The other half of that boundary: what may reach this application.
         'packages/integrations/src/woocommerce/webhooks/signature.ts',
+        // Quota ceilings and the health verdict. Both are pure decisions whose
+        // branches are the behaviour: an unmeasured one is a priority that
+        // never gets throttled or a fault that never gets named. The ledger and
+        // the health service they sit behind touch the database and are proven
+        // by the integration project instead.
+        'packages/integrations/src/quota-policy.ts',
+        'packages/integrations/src/health-policy.ts',
         // The web tier's security-critical pure helpers. The screens and server
         // actions are not measured here: they need a browser and a session, and
         // the integration and Compose tiers are where they are exercised.
@@ -167,6 +174,18 @@ export default defineConfig({
           statements: 90,
         },
         'packages/integrations/src/woocommerce/webhooks/signature.ts': {
+          branches: 90,
+          functions: 90,
+          lines: 90,
+          statements: 90,
+        },
+        'packages/integrations/src/quota-policy.ts': {
+          branches: 90,
+          functions: 90,
+          lines: 90,
+          statements: 90,
+        },
+        'packages/integrations/src/health-policy.ts': {
           branches: 90,
           functions: 90,
           lines: 90,
