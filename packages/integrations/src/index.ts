@@ -89,6 +89,22 @@ export {
 } from './ebay/notifications/application-token';
 
 export {
+  challengeResponse,
+  isUsableVerificationToken,
+  type ChallengeInput,
+} from './ebay/notifications/challenge';
+
+export {
+  createDestinations,
+  type DestinationFailure,
+  type DestinationOptions,
+  type Destinations,
+  type EnsureDestinationInput,
+  type EnsureDestinationResult,
+  type StoredDestination,
+} from './ebay/notifications/destination';
+
+export {
   createPublicKeyReader,
   createSignatureVerifier,
   parseSignatureHeader,
