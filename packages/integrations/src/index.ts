@@ -114,6 +114,24 @@ export {
 } from './woocommerce/connection';
 
 export {
+  backordersEnabled,
+  mapOrder as mapWooOrder,
+  mapProduct,
+  mapRefund,
+  mapVariation,
+  orderStream as wooOrderStream,
+  productIneligibility,
+  productStream,
+  refundStream,
+  woocommerceStreams,
+  type MappedProduct,
+  type MappedRefund,
+  type MappedWooOrder,
+  type MappedWooOrderLine,
+  type WooImportOptions,
+} from './woocommerce/imports';
+
+export {
   createWooReadiness,
   type WooReadiness,
   type WooReadinessOptions,
