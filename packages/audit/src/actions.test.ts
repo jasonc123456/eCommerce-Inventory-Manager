@@ -32,6 +32,7 @@ describe('the action catalogue', () => {
       'auth',
       'authz',
       'business',
+      'connection',
       'installation',
       'member',
       'user',

@@ -35,6 +35,14 @@ export {
 export { createQuotaLedger, type QuotaLedger } from './quota';
 
 export {
+  disconnect,
+  previewDisconnect,
+  type DisconnectOptions,
+  type DisconnectOutcome,
+  type DisconnectPreview,
+} from './disconnect';
+
+export {
   CIRCUIT_COOLDOWN_MS,
   CIRCUIT_THRESHOLD,
   circuitStateOf,

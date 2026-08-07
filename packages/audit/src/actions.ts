@@ -70,6 +70,23 @@ export const AUDIT_ACTIONS = [
   'user.reinstated',
   'user.deleted',
 
+  // --- Connections ---------------------------------------------------------
+  //
+  // Sections 13 and 14. A connection is a credential to somebody's shop, so the
+  // whole lifecycle is recorded: who started an authorization, what came back,
+  // who tested it, who rotated its secrets, and who took it out of service.
+  // `rejected` is here because a credential that failed to be adopted is the
+  // interesting half — it is either a typo or somebody else's key.
+  'connection.authorization_started',
+  'connection.connected',
+  'connection.rejected',
+  'connection.tested',
+  'connection.paused',
+  'connection.resumed',
+  'connection.webhooks_reconciled',
+  'connection.webhook_rotation_started',
+  'connection.disconnected',
+
   // --- Installation --------------------------------------------------------
   'installation.bootstrap.completed',
   'installation.bootstrap.failed',
