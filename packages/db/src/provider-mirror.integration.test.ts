@@ -10,6 +10,7 @@ import {
   marketplaceDeletionOutcomes,
   marketplaceDeletionRequests,
   memberships,
+  notificationDestinations,
   providerItems,
   providerLocations,
   providerOrderLines,
@@ -461,5 +462,61 @@ describe('marketplace deletion', () => {
     );
 
     expect(reason).toContain('marketplace_deletion_outcomes_pkey');
+  });
+});
+
+describe('notification destinations', () => {
+  it('allows one destination per keyset and refuses a second', async () => {
+    // Two destinations for one keyset means half a seller's events arriving
+    // somewhere this installation is not reading, and nothing reports the half
+    // that went missing.
+    await harness.db
+      .insert(notificationDestinations)
+      .values({ environment: 'sandbox', endpointUrl: 'https://example.invalid/hooks/ebay' });
+
+    const reason = await refuses(() =>
+      harness.db
+        .insert(notificationDestinations)
+        .values({ environment: 'sandbox', endpointUrl: 'https://other.invalid/hooks/ebay' }),
+    );
+
+    expect(reason).toContain('notification_destinations_keyset_unique');
+  });
+
+  it('keeps sandbox and production destinations apart', async () => {
+    await harness.db
+      .insert(notificationDestinations)
+      .values({ environment: 'production', endpointUrl: 'https://example.invalid/hooks/ebay' });
+
+    const rows = await harness.db
+      .select({ environment: notificationDestinations.environment })
+      .from(notificationDestinations);
+
+    expect(rows.map((row) => row.environment).sort()).toEqual(['production', 'sandbox']);
+  });
+
+  it('refuses a plaintext endpoint', async () => {
+    // eBay refuses to register one, and it would put buyer identifiers on the
+    // wire. Enforced here so a configuration mistake fails locally rather than
+    // as an opaque rejection from eBay.
+    const reason = await refuses(() =>
+      harness.db
+        .insert(notificationDestinations)
+        .values({ environment: 'sandbox', endpointUrl: 'http://example.invalid/hooks/ebay' }),
+    );
+
+    expect(reason).toContain('notification_destinations_endpoint_https');
+  });
+
+  it('refuses to call a destination enabled before the provider has named it', async () => {
+    const reason = await refuses(() =>
+      harness.db.insert(notificationDestinations).values({
+        environment: 'production',
+        endpointUrl: 'https://example.invalid/hooks/ebay',
+        status: 'enabled',
+      }),
+    );
+
+    expect(reason).toContain('notification_destinations_registered');
   });
 });

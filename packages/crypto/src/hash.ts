@@ -38,7 +38,14 @@ export type HashDomain =
   /** Section 19: routine logs identify an address by fingerprint, not by value. */
   | 'email_fingerprint'
   /** Sections 13, 14: the single-use state carried through a provider's consent screen. */
-  | 'connection_authorization';
+  | 'connection_authorization'
+  /**
+   * Section 13: the verification token a notification destination was
+   * registered with. Stored as a fingerprint so that a token the operator
+   * changed in the provider's portal is detectable, without the destination row
+   * becoming a second place the token itself lives.
+   */
+  | 'notification_verification';
 
 export interface KeyedHasher {
   /**

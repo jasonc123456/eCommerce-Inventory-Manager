@@ -14,7 +14,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 import { businesses, locations } from './tenancy';
-import { importRuns, providerNames } from './connections';
+import { connectionEnvironments, importRuns, providerNames } from './connections';
 
 /**
  * Typed access to the provider mirror (sections 6, 13, 14).
@@ -196,6 +196,36 @@ export const providerRefunds = pgTable(
   },
   (table) => [
     uniqueIndex('provider_refunds_external_unique').on(table.connectionId, table.externalId),
+  ],
+);
+
+/**
+ * Where a provider delivers notifications (section 13).
+ *
+ * `migrations/0008_notification_destinations.sql` is the source of truth. Not
+ * business-scoped, unlike everything above it: eBay registers a destination
+ * against the application keyset, so one URL receives every authorized seller's
+ * events and the row is keyed by environment instead.
+ */
+export const destinationStatuses = ['pending', 'enabled', 'disabled', 'failed'] as const;
+
+export const notificationDestinations = pgTable(
+  'notification_destinations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    provider: text('provider', { enum: providerNames }).notNull().default('ebay'),
+    environment: text('environment', { enum: connectionEnvironments }).notNull(),
+    endpointUrl: text('endpoint_url').notNull(),
+    externalId: text('external_id'),
+    status: text('status', { enum: destinationStatuses }).notNull().default('pending'),
+    summary: text('summary'),
+    verificationFingerprint: text('verification_fingerprint'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    lastCheckedAt: timestamp('last_checked_at', { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex('notification_destinations_keyset_unique').on(table.provider, table.environment),
   ],
 );
 
