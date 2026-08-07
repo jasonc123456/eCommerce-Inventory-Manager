@@ -120,6 +120,37 @@ export {
 } from './woocommerce/readiness';
 
 export {
+  MANAGED_TOPICS,
+  createWooWebhooks,
+  deliveryUrlFor,
+  verifiableSecrets,
+  type ManagedTopic,
+  type ManualSetup,
+  type WebhookOutcome,
+  type WebhookReport,
+  type WooWebhookOptions,
+  type WooWebhooks,
+} from './woocommerce/webhooks/registration';
+
+export {
+  createWooIntake,
+  dedupeKey,
+  type WooIntake,
+  type WooIntakeOptions,
+  type WooIntakeRefusal,
+  type WooIntakeResult,
+} from './woocommerce/webhooks/intake';
+
+export {
+  decodeSignature,
+  signWebhookBody,
+  verifyWebhookSignature,
+  type SigningSecret,
+  type WebhookVerification,
+  type WebhookVerificationFailure,
+} from './woocommerce/webhooks/signature';
+
+export {
   createImportRunner,
   reclaimAbandonedRuns,
   type ImportOutcome,

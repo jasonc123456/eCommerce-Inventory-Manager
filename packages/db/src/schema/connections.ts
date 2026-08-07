@@ -79,6 +79,12 @@ export const connectionSecrets = pgTable(
     businessId: uuid('business_id').notNull(),
     connectionId: uuid('connection_id').notNull(),
     secretType: text('secret_type', { enum: connectionSecretTypes }).notNull(),
+    /**
+     * Which of several secrets of one kind this is. Null for every kind that has
+     * exactly one per connection; for a webhook secret it is the registration
+     * the secret signs for, because a rotation deliberately has two at once.
+     */
+    secretScope: text('secret_scope'),
     ciphertext: text('ciphertext').notNull(),
     keyVersion: integer('key_version').notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }),
@@ -188,9 +194,13 @@ export const providerWebhooks = pgTable('provider_webhooks', {
   appManaged: boolean('app_managed').notNull().default(true),
   status: text('status', { enum: webhookRegistrationStatuses }).notNull().default('pending'),
   secretId: uuid('secret_id').references(() => connectionSecrets.id, { onDelete: 'set null' }),
+  /** The registration this one was created to replace, during a rotation. */
+  replacesId: uuid('replaces_id'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   lastDeliveryAt: timestamp('last_delivery_at', { withTimezone: true }),
+  /** When a delivery last verified against this registration's own secret. */
+  lastVerifiedAt: timestamp('last_verified_at', { withTimezone: true }),
   failureCount: integer('failure_count').notNull().default(0),
 });
 
@@ -219,6 +229,12 @@ export const webhookDeliveries = pgTable(
     failureSummary: text('failure_summary'),
     rawBody: text('raw_body'),
     headers: jsonb('headers').notNull().default({}),
+    /**
+     * A fingerprint of what the delivery is about rather than of which
+     * registration carried it, so a rotation's overlapping registrations
+     * deliver one event and produce one row.
+     */
+    dedupeKey: text('dedupe_key'),
   },
   (table) => [index('webhook_deliveries_retention').on(table.receivedAt)],
 );

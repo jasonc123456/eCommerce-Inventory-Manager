@@ -2,11 +2,15 @@ import {
   createAuthorizations,
   createSecretStore,
   createWooConnections,
+  createWooIntake,
   createWooReadiness,
+  createWooWebhooks,
   type Authorizations,
   type SecretStore,
   type WooConnections,
+  type WooIntake,
   type WooReadiness,
+  type WooWebhooks,
 } from '@eim/integrations';
 import { createHttpClient, type UrlPolicy } from '@eim/providers';
 
@@ -27,6 +31,8 @@ const WOO_KEY = Symbol.for('eim.web.woocommerce');
 interface Wiring {
   readonly connections: WooConnections;
   readonly readiness: WooReadiness;
+  readonly webhooks: WooWebhooks;
+  readonly intake: WooIntake;
   /** Shared with the eBay flow: one custody boundary for every credential. */
   readonly secrets: SecretStore;
   readonly authorizations: Authorizations;
@@ -86,9 +92,19 @@ export function woocommerce(): Wiring {
   const secrets = createSecretStore({ db, keyring });
   const authorizations = createAuthorizations({ db, hasher });
 
+  const webhooks = createWooWebhooks({
+    db,
+    http,
+    secrets,
+    policy,
+    publicUrl: config.EIM_PUBLIC_URL,
+  });
+
   const built: Wiring = {
     secrets,
     authorizations,
+    webhooks,
+    intake: createWooIntake({ db, secrets, policy, webhooks }),
     connections: createWooConnections({
       db,
       http,

@@ -28,14 +28,23 @@ export interface SecretStore {
   /** Stores a value, retiring whatever it replaces. */
   put(input: PutSecret): Promise<string>;
   /** The current value, or null when there is none. */
-  read(connection: ConnectionRef, secretType: ConnectionSecretType): Promise<string | null>;
+  read(
+    connection: ConnectionRef,
+    secretType: ConnectionSecretType,
+    scope?: string,
+  ): Promise<string | null>;
   /** The current value with what is known about it, without decrypting. */
   describe(
     connection: ConnectionRef,
     secretType: ConnectionSecretType,
+    scope?: string,
   ): Promise<SecretDescription | null>;
   /** Retires the current value without storing a replacement. */
-  retire(connection: ConnectionRef, secretType: ConnectionSecretType): Promise<void>;
+  retire(
+    connection: ConnectionRef,
+    secretType: ConnectionSecretType,
+    scope?: string,
+  ): Promise<void>;
 }
 
 export interface ConnectionRef {
@@ -45,6 +54,16 @@ export interface ConnectionRef {
 
 export interface PutSecret extends ConnectionRef {
   readonly secretType: ConnectionSecretType;
+  /**
+   * Which of several secrets of this kind this is.
+   *
+   * Every kind but one has exactly one live value per connection, and leaves
+   * this unset. A webhook secret does not: section 14 requires a distinct secret
+   * per managed registration, and a rotation deliberately has two live at once
+   * for the same topic. The scope is the registration, not the topic, for
+   * exactly that reason.
+   */
+  readonly scope?: string | undefined;
   readonly value: string;
   readonly expiresAt?: Date | undefined;
   readonly now?: Date;
@@ -65,13 +84,28 @@ export interface SecretStoreOptions {
 export function createSecretStore(options: SecretStoreOptions): SecretStore {
   const { db, keyring } = options;
 
-  const contextFor = (connection: ConnectionRef, secretType: ConnectionSecretType) => ({
+  // The scope is part of the encryption context, not just of the lookup. A
+  // ciphertext moved from one webhook's row to another's — by a bug, by a
+  // restored backup, by somebody with database access — then fails to decrypt
+  // rather than quietly signing as the wrong registration.
+  const contextFor = (
+    connection: ConnectionRef,
+    secretType: ConnectionSecretType,
+    scope: string | undefined,
+  ) => ({
     businessId: connection.businessId,
-    resource: `connection:${connection.connectionId}`,
+    resource:
+      scope === undefined
+        ? `connection:${connection.connectionId}`
+        : `connection:${connection.connectionId}/${scope}`,
     secretType,
   });
 
-  const current = (connection: ConnectionRef, secretType: ConnectionSecretType) =>
+  const current = (
+    connection: ConnectionRef,
+    secretType: ConnectionSecretType,
+    scope: string | undefined,
+  ) =>
     db
       .select()
       .from(connectionSecrets)
@@ -80,6 +114,9 @@ export function createSecretStore(options: SecretStoreOptions): SecretStore {
           eq(connectionSecrets.connectionId, connection.connectionId),
           eq(connectionSecrets.businessId, connection.businessId),
           eq(connectionSecrets.secretType, secretType),
+          scope === undefined
+            ? isNull(connectionSecrets.secretScope)
+            : eq(connectionSecrets.secretScope, scope),
           isNull(connectionSecrets.retiredAt),
         ),
       )
@@ -88,7 +125,11 @@ export function createSecretStore(options: SecretStoreOptions): SecretStore {
   return {
     async put(input) {
       const now = input.now ?? new Date();
-      const ciphertext = encryptSecret(keyring, contextFor(input, input.secretType), input.value);
+      const ciphertext = encryptSecret(
+        keyring,
+        contextFor(input, input.secretType, input.scope),
+        input.value,
+      );
 
       // One transaction, because the partial unique index permits exactly one
       // unretired secret of each kind: retiring and inserting separately would
@@ -102,6 +143,9 @@ export function createSecretStore(options: SecretStoreOptions): SecretStore {
             and(
               eq(connectionSecrets.connectionId, input.connectionId),
               eq(connectionSecrets.secretType, input.secretType),
+              input.scope === undefined
+                ? isNull(connectionSecrets.secretScope)
+                : eq(connectionSecrets.secretScope, input.scope),
               isNull(connectionSecrets.retiredAt),
             ),
           );
@@ -112,6 +156,7 @@ export function createSecretStore(options: SecretStoreOptions): SecretStore {
             businessId: input.businessId,
             connectionId: input.connectionId,
             secretType: input.secretType,
+            secretScope: input.scope ?? null,
             ciphertext,
             keyVersion: keyring.active().version,
             expiresAt: input.expiresAt ?? null,
@@ -126,8 +171,8 @@ export function createSecretStore(options: SecretStoreOptions): SecretStore {
       });
     },
 
-    async read(connection, secretType) {
-      const [row] = await current(connection, secretType);
+    async read(connection, secretType, scope) {
+      const [row] = await current(connection, secretType, scope);
 
       if (row === undefined) {
         return null;
@@ -136,11 +181,11 @@ export function createSecretStore(options: SecretStoreOptions): SecretStore {
       // Not wrapped in a try: a ciphertext that will not decrypt means the
       // keyring is wrong or the row has been moved, and both are conditions
       // that must stop the caller rather than look like "no credential yet".
-      return decryptSecret(keyring, contextFor(connection, secretType), row.ciphertext);
+      return decryptSecret(keyring, contextFor(connection, secretType, scope), row.ciphertext);
     },
 
-    async describe(connection, secretType) {
-      const [row] = await current(connection, secretType);
+    async describe(connection, secretType, scope) {
+      const [row] = await current(connection, secretType, scope);
 
       return row === undefined
         ? null
@@ -152,7 +197,7 @@ export function createSecretStore(options: SecretStoreOptions): SecretStore {
           };
     },
 
-    async retire(connection, secretType) {
+    async retire(connection, secretType, scope) {
       await db
         .update(connectionSecrets)
         .set({ retiredAt: new Date() })
@@ -161,6 +206,9 @@ export function createSecretStore(options: SecretStoreOptions): SecretStore {
             eq(connectionSecrets.connectionId, connection.connectionId),
             eq(connectionSecrets.businessId, connection.businessId),
             eq(connectionSecrets.secretType, secretType),
+            scope === undefined
+              ? isNull(connectionSecrets.secretScope)
+              : eq(connectionSecrets.secretScope, scope),
             isNull(connectionSecrets.retiredAt),
           ),
         );

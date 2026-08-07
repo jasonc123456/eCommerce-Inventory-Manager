@@ -15,4 +15,4 @@
  *
  * Bump this in the same commit as the migration it accompanies.
  */
-export const EXPECTED_SCHEMA_VERSION = 8;
+export const EXPECTED_SCHEMA_VERSION = 9;

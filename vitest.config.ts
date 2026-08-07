@@ -67,6 +67,8 @@ export default defineConfig({
         // credential never reaches a URL.
         'packages/integrations/src/woocommerce/store.ts',
         'packages/integrations/src/woocommerce/client.ts',
+        // The other half of that boundary: what may reach this application.
+        'packages/integrations/src/woocommerce/webhooks/signature.ts',
         // The web tier's security-critical pure helpers. The screens and server
         // actions are not measured here: they need a browser and a session, and
         // the integration and Compose tiers are where they are exercised.
@@ -159,6 +161,12 @@ export default defineConfig({
           statements: 90,
         },
         'packages/integrations/src/woocommerce/client.ts': {
+          branches: 90,
+          functions: 90,
+          lines: 90,
+          statements: 90,
+        },
+        'packages/integrations/src/woocommerce/webhooks/signature.ts': {
           branches: 90,
           functions: 90,
           lines: 90,

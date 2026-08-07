@@ -361,6 +361,57 @@ describe('imports', () => {
 });
 
 describe('webhooks', () => {
+  it('refuses a webhook secret that does not name the registration it signs for', async () => {
+    // Every other kind of credential is unique per connection. A webhook secret
+    // is not: section 14 requires one per managed registration, and a rotation
+    // deliberately has two live for one topic. A secret with no scope is one
+    // nothing can decide the ownership of.
+    const { businessId } = await seedBusiness();
+    const connectionId = await seedConnection(businessId, { provider: 'woocommerce' });
+
+    const reason = await refuses(() =>
+      harness.db.insert(connectionSecrets).values({
+        businessId,
+        connectionId,
+        secretType: 'webhook_secret',
+        ciphertext: 'eim1.1.a.b.c',
+        keyVersion: 1,
+      }),
+    );
+
+    expect(reason).toContain('connection_secrets_scope_when_webhook');
+  });
+
+  it('holds several live webhook secrets for one connection', async () => {
+    const { businessId } = await seedBusiness();
+    const connectionId = await seedConnection(businessId, { provider: 'woocommerce' });
+
+    for (const scope of ['hook-a', 'hook-b', 'hook-c']) {
+      await harness.db.insert(connectionSecrets).values({
+        businessId,
+        connectionId,
+        secretType: 'webhook_secret',
+        secretScope: scope,
+        ciphertext: `eim1.1.${scope}.b.c`,
+        keyVersion: 1,
+      });
+    }
+
+    // ...and still refuses two live secrets for the same registration.
+    const reason = await refuses(() =>
+      harness.db.insert(connectionSecrets).values({
+        businessId,
+        connectionId,
+        secretType: 'webhook_secret',
+        secretScope: 'hook-a',
+        ciphertext: 'eim1.1.duplicate.b.c',
+        keyVersion: 1,
+      }),
+    );
+
+    expect(reason).toContain('connection_secrets_live');
+  });
+
   it('refuses to hold a signing secret for a webhook we did not create', async () => {
     // A webhook somebody else registered is one we may list but never manage,
     // and a secret of ours attached to it would imply otherwise.
@@ -373,6 +424,9 @@ describe('webhooks', () => {
         businessId,
         connectionId,
         secretType: 'webhook_secret',
+        // A webhook secret must name the registration it signs for: several are
+        // live at once, one per topic and two more during a rotation.
+        secretScope: '00000000-0000-4000-8000-0000000000ff',
         ciphertext: 'eim1.1.a.b.c',
         keyVersion: 1,
       })
