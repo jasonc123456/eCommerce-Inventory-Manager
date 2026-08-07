@@ -221,12 +221,18 @@ importers:
       '@eim/identity':
         specifier: workspace:*
         version: link:../../packages/identity
+      '@eim/integrations':
+        specifier: workspace:*
+        version: link:../../packages/integrations
       '@eim/mail':
         specifier: workspace:*
         version: link:../../packages/mail
       '@eim/observability':
         specifier: workspace:*
         version: link:../../packages/observability
+      '@eim/providers':
+        specifier: workspace:*
+        version: link:../../packages/providers
       '@eim/ratelimit':
         specifier: workspace:*
         version: link:../../packages/ratelimit
