@@ -105,6 +105,19 @@ export {
 } from './ebay/notifications/destination';
 
 export {
+  TOPIC_FAMILIES,
+  classifyTopic,
+  createNotificationTopics,
+  type NotificationTopics,
+  type ReconcileFailure,
+  type ReconcileReport,
+  type ReconcileResult,
+  type TopicFamily,
+  type TopicOptions,
+  type TopicOutcome,
+} from './ebay/notifications/topics';
+
+export {
   createPublicKeyReader,
   createSignatureVerifier,
   parseSignatureHeader,

@@ -5,6 +5,7 @@ import { and, eq } from 'drizzle-orm';
 
 import { hostsFor, type CredentialLookup, type EbayEnvironment } from '../environment';
 import { isUsableVerificationToken } from './challenge';
+import { identifierFrom, parseJsonObject, stringField } from './rest';
 
 /**
  * Where eBay delivers seller notifications (section 13).
@@ -392,27 +393,20 @@ async function readDestination(context: CallContext, destinationId: string): Pro
     return 'unavailable';
   }
 
-  let payload: unknown;
+  const record = parseJsonObject(outcome.response.body);
 
-  try {
-    payload = JSON.parse(outcome.response.body);
-  } catch {
+  if (record === null) {
     return 'unavailable';
   }
 
-  if (typeof payload !== 'object' || payload === null) {
-    return 'unavailable';
-  }
-
-  const record = payload as Record<string, unknown>;
   const delivery = record['deliveryConfig'];
   const endpoint =
     typeof delivery === 'object' && delivery !== null
-      ? (delivery as Record<string, unknown>)['endpoint']
+      ? stringField(delivery as Record<string, unknown>, 'endpoint')
       : undefined;
 
   return {
-    endpoint: typeof endpoint === 'string' ? endpoint : '',
+    endpoint: endpoint ?? '',
     // Anything other than ENABLED is treated as off. eBay has used more than
     // one word for a destination it has stopped delivering to, and the
     // consequence of each is the same.
@@ -473,46 +467,12 @@ async function writeDestination(
   }
 
   const identifier =
-    input.destinationId ?? identifierFrom(outcome.response.body, outcome.response.headers);
+    input.destinationId ??
+    identifierFrom(outcome.response.body, outcome.response.headers, 'destinationId');
 
   return identifier === undefined
     ? { outcome: 'ok' }
     : { outcome: 'ok', destinationId: identifier };
-}
-
-/**
- * eBay names a newly created destination in the body, the `Location` header, or
- * both, depending on which of its APIs answers. Both are read rather than one,
- * because a registration whose identifier was not captured is unmanageable
- * afterwards.
- */
-function identifierFrom(
-  body: string,
-  headers: Readonly<Record<string, string>>,
-): string | undefined {
-  try {
-    const payload: unknown = JSON.parse(body);
-
-    if (typeof payload === 'object' && payload !== null) {
-      const value = (payload as Record<string, unknown>)['destinationId'];
-
-      if (typeof value === 'string' && value.length > 0) {
-        return value;
-      }
-    }
-  } catch {
-    // Falls through to the header.
-  }
-
-  const location = headers['location'] ?? headers['Location'];
-
-  if (typeof location !== 'string' || location.length === 0) {
-    return undefined;
-  }
-
-  const segment = location.split('?')[0]?.split('/').filter(Boolean).pop();
-
-  return segment === undefined || segment.length === 0 ? undefined : segment;
 }
 
 function summaryFor(outcome: 'unavailable' | 'refused', what: string): string {
