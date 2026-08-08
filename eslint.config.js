@@ -156,6 +156,12 @@ export default tseslint.config(
       // The test harness reads EIM_TEST_DATABASE_URL and creates scratch
       // databases; it is not a production path.
       'packages/testing/**/*.ts',
+      // The M5 exit gate reads this repository's own configuration and
+      // migrations to assert that no automatic publication path exists.
+      // Section 36 asks it to prove an absence, and an absence can only be
+      // checked against the files that would have to contain it. The paths are
+      // derived from this module's own location, never from input.
+      'packages/listings/src/acceptance.integration.test.ts',
     ],
     rules: {
       'no-restricted-properties': 'off',
