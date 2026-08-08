@@ -16,6 +16,16 @@
  * sent in the HTTP request, so the token does not reach the server's access log,
  * a reverse proxy's log, or a Referer header on the way to a later page. The
  * page at that address posts it back same-origin and clears the fragment.
+ *
+ * An installation whose mail passes through a rewriting security gateway may
+ * have to move the token to the query instead (D-182). Microsoft Defender Safe
+ * Links and its equivalents rewrite every URL in a message, and a rewrite that
+ * drops the fragment delivers the recipient a confirmation page with nothing in
+ * it — a link that fails for the owner while remaining perfectly safe from the
+ * scanner. The carrier is therefore a setting, defaulting to the fragment.
+ *
+ * Neither carrier authenticates on GET. That is the property that actually stops
+ * a scanner spending the link, and it does not depend on this choice.
  */
 
 export interface RenderedMessage {
@@ -61,15 +71,39 @@ export interface MagicLinkContext extends BrandContext {
    * than a second near-identical template that would drift from this one.
    */
   readonly path?: string;
+  /**
+   * Where the token rides. Defaults to the fragment; see the file header for
+   * why an installation behind a link-rewriting mail gateway may need `query`.
+   */
+  readonly tokenCarrier?: TokenCarrier;
+}
+
+export type TokenCarrier = 'fragment' | 'query';
+
+/** The query parameter used when the fragment cannot survive the journey. */
+export const TOKEN_QUERY_PARAMETER = 't';
+
+export function magicLinkUrl(context: {
+  readonly publicUrl: string;
+  readonly token: string;
+  readonly path?: string;
+  readonly tokenCarrier?: TokenCarrier;
+}): string {
+  const base = `${trimTrailingSlash(context.publicUrl)}${context.path ?? '/sign-in/link'}`;
+  const token = encodeURIComponent(context.token);
+
+  // Section 19 prefers the fragment, which is not sent in the HTTP request and
+  // so is logged by nothing in the way.
+  return context.tokenCarrier === 'query'
+    ? `${base}?${TOKEN_QUERY_PARAMETER}=${token}`
+    : `${base}#${token}`;
 }
 
 export function renderMagicLink(
   context: MagicLinkContext,
   overrides: TemplateOverrides = {},
 ): RenderedMessage {
-  // The fragment. Section 19 is explicit that the bearer token must not be in
-  // the path or the query, where it would be logged by everything in the way.
-  const url = `${trimTrailingSlash(context.publicUrl)}${context.path ?? '/sign-in/link'}#${encodeURIComponent(context.token)}`;
+  const url = magicLinkUrl(context);
 
   const intro =
     overrides.signInIntro ??

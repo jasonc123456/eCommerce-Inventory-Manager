@@ -70,6 +70,23 @@ export const configSchema = z.object({
   EIM_TRUSTED_PROXY_CIDRS: csv,
   EIM_ALLOW_PRIVATE_INTEGRATION_HOSTS: boolish,
   EIM_PRIVATE_HOST_ALLOWLIST: csv,
+  /**
+   * Where a sign-in link carries its token (sections 19, 20).
+   *
+   * `fragment` is the default and the safer of the two: a fragment is never sent
+   * in an HTTP request, so the token reaches no access log, proxy log, or
+   * Referer header. Some mail security gateways — Microsoft Defender Safe Links
+   * among them — rewrite every link in a message and do not always carry the
+   * fragment through the rewrite, which delivers the recipient to a
+   * confirmation page with no token in it.
+   *
+   * `query` exists for those installations. It is a real reduction in secrecy
+   * and is opt-in for that reason. What it does *not* give up is the property
+   * that matters most: the token is still only spent by a POST from a button
+   * press, so a scanner fetching the link cannot consume it either way.
+   */
+  EIM_MAGIC_LINK_TOKEN_CARRIER: z.enum(['fragment', 'query']).default('fragment'),
+
   EIM_LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).default('info'),
   EIM_APP_VERSION: optionalString,
 });

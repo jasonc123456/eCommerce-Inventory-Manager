@@ -22,8 +22,14 @@ import { useFragmentSecret } from '../../../../components/use-fragment-secret';
  * So the fragment is read here and posted back only when somebody presses the
  * button.
  */
-export function LinkForm({ redirectPath }: { redirectPath: string }) {
-  const fragment = useFragmentSecret();
+export function LinkForm({
+  redirectPath,
+  carriedToken,
+}: {
+  redirectPath: string;
+  carriedToken?: string;
+}) {
+  const fragment = useFragmentSecret(carriedToken);
   const [state, action, pending] = useActionState<VerifyFormState, FormData>(verifyLinkAction, {
     status: 'idle',
   });

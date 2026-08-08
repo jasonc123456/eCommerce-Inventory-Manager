@@ -204,6 +204,13 @@ export const FIELD_METADATA: Readonly<Record<ConfigKey, FieldMeta>> = {
     example: '192.168.1.50,10.0.0.0/24',
     requiredInProduction: false,
   },
+  EIM_MAGIC_LINK_TOKEN_CARRIER: {
+    description:
+      'Where a sign-in link carries its token. `fragment` keeps it out of every log; `query` is for installations whose mail gateway rewrites links and drops the fragment (section 19).',
+    sensitivity: 'public',
+    example: 'fragment',
+    requiredInProduction: false,
+  },
   EIM_LOG_LEVEL: {
     description:
       'Baseline log level. Debug and trace change detail, never redaction policy (section 22).',
@@ -255,6 +262,7 @@ export const FIELD_ORDER: readonly ConfigKey[] = [
   'EIM_TRUSTED_PROXY_CIDRS',
   'EIM_ALLOW_PRIVATE_INTEGRATION_HOSTS',
   'EIM_PRIVATE_HOST_ALLOWLIST',
+  'EIM_MAGIC_LINK_TOKEN_CARRIER',
   'EIM_LOG_LEVEL',
   'EIM_APP_VERSION',
 ];

@@ -106,6 +106,7 @@ export async function requestSignIn(input: RequestSignInInput): Promise<RequestS
             publicUrl: config.EIM_PUBLIC_URL,
             token: issued.secret,
             expiresInMinutes,
+            tokenCarrier: config.EIM_MAGIC_LINK_TOKEN_CARRIER,
             ...(userAgent === null ? {} : { requestedFrom: describeDevice(userAgent) }),
           })
         : renderEmailCode({

@@ -27,17 +27,32 @@ const HOUR = 60 * MINUTE;
  * The subject is a keyed fingerprint of the normalized address, never the
  * address itself: section 19 keeps routine records on a fingerprint, and a
  * limiter that stored addresses would become a second place they live.
+ *
+ * Requesting a sign-in link is throttled rather than budgeted: one per minute,
+ * for as long as somebody keeps asking. The earlier five-per-quarter-hour shape
+ * had a failure mode worth avoiding — a person whose first link was eaten by a
+ * mail gateway spent their allowance discovering that, and was then locked out
+ * for eleven minutes with no way in at all. A throttle costs an attacker just as
+ * much per message while never leaving a legitimate owner stranded, and the mail
+ * budget below is what actually caps the damage of an enumeration run.
  */
 export const EMAIL_CHALLENGE_PER_EMAIL: RateLimitRule = {
   bucket: 'auth:challenge:email',
-  limit: 5,
-  windowSeconds: 15 * MINUTE,
+  limit: 1,
+  windowSeconds: MINUTE,
   description: 'Sign-in requests for one email address',
 };
 
+/**
+ * Wide enough that one person asking once a minute never reaches it.
+ *
+ * This limit exists to slow enumeration of *many* addresses from one network,
+ * not to ration one owner's own sign-ins, so it is set above what the per-address
+ * throttle allows a single person to consume in an hour.
+ */
 export const EMAIL_CHALLENGE_PER_IP: RateLimitRule = {
   bucket: 'auth:challenge:ip',
-  limit: 20,
+  limit: 120,
   windowSeconds: HOUR,
   description: 'Sign-in requests from one network address',
 };

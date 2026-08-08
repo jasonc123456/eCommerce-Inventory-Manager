@@ -50,6 +50,7 @@ export async function requestSetupLinkAction(
       token: result.token,
       expiresInMinutes: 15,
       path: '/setup?step=complete',
+      tokenCarrier: config.EIM_MAGIC_LINK_TOKEN_CARRIER,
       ...(metadata.userAgent === null ? {} : { requestedFrom: describeDevice(metadata.userAgent) }),
     });
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useSyncExternalStore } from 'react';
+import { TOKEN_FIELD } from '../lib/token-field';
 
 /**
  * Reads the URL fragment once, then clears it.
@@ -27,16 +28,32 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
  * possibly empty, afterwards. The three states are distinguishable on purpose:
  * "still looking" and "there was nothing there" call for different words.
  */
-export function useFragmentSecret(): string | undefined {
+export function useFragmentSecret(fallback?: string): string | undefined {
   const [store] = useState(createFragmentStore);
 
-  const secret = useSyncExternalStore(store.subscribe, store.read, store.readOnServer);
+  const fromFragment = useSyncExternalStore(store.subscribe, store.read, store.readOnServer);
+  // The fallback is the query carrier (D-182), used by installations whose mail
+  // gateway rewrites links and drops the fragment. The fragment still wins where
+  // it survived, so a rewritten and an unrewritten copy of the same message both
+  // work, and the address bar is cleared either way.
+  const secret =
+    fromFragment === undefined || fromFragment.length > 0 ? fromFragment : (fallback ?? '');
 
   useEffect(() => {
-    if (window.location.hash.length > 0) {
+    const query = new URLSearchParams(window.location.search);
+    // Both carriers are stripped from the address bar for the same reason: a
+    // token left there survives in history, in a shared screenshot, and in
+    // whatever the next navigation reports.
+    const carriedInQuery = query.has(TOKEN_FIELD);
+
+    if (window.location.hash.length > 0 || carriedInQuery) {
+      query.delete(TOKEN_FIELD);
+
+      const search = query.size === 0 ? '' : `?${query.toString()}`;
+
       // replaceState rather than assigning to `location.hash`, which would add
       // a history entry containing the value rather than removing it.
-      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      window.history.replaceState(null, '', window.location.pathname + search);
     }
   }, []);
 

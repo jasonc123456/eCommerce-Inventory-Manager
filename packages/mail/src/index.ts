@@ -10,10 +10,12 @@ export {
 
 export {
   escapeHtml,
+  magicLinkUrl,
   renderEmailCode,
   renderInvitation,
   renderMagicLink,
   renderSecurityNotice,
+  TOKEN_QUERY_PARAMETER,
   type BrandContext,
   type EmailCodeContext,
   type InvitationContext,
@@ -21,4 +23,5 @@ export {
   type RenderedMessage,
   type SecurityNoticeContext,
   type TemplateOverrides,
+  type TokenCarrier,
 } from './templates';

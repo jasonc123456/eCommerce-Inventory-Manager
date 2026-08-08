@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { identity } from '../../../lib/identity';
 import { runtime } from '../../../lib/runtime';
 import { CompleteSetupForm, RequestSetupLinkForm } from './setup-forms';
+import { TOKEN_FIELD } from '../../../lib/token-field';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +25,7 @@ export default async function SetupPage({
 
   const params = await searchParams;
   const step = params['step'];
+  const carried = params[TOKEN_FIELD];
 
   return (
     <>
@@ -35,7 +37,11 @@ export default async function SetupPage({
         </p>
       </header>
 
-      {step === 'complete' ? <CompleteSetupForm /> : <RequestSetupLinkForm />}
+      {step === 'complete' ? (
+        <CompleteSetupForm {...(typeof carried === 'string' ? { carriedToken: carried } : {})} />
+      ) : (
+        <RequestSetupLinkForm />
+      )}
     </>
   );
 }

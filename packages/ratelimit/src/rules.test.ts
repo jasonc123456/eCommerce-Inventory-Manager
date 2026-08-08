@@ -5,10 +5,21 @@ import { delayForAttempt } from './pressure';
 import { AUTHENTICATION_RULES, EMAIL_CHALLENGE_PER_EMAIL, EMAIL_CHALLENGE_PER_IP } from './rules';
 
 describe('the rule catalogue', () => {
-  it('matches the numbers section 20 fixes', () => {
-    // Five requests per email per fifteen minutes, twenty per IP per hour.
-    expect(EMAIL_CHALLENGE_PER_EMAIL).toMatchObject({ limit: 5, windowSeconds: 900 });
-    expect(EMAIL_CHALLENGE_PER_IP).toMatchObject({ limit: 20, windowSeconds: 3600 });
+  it('throttles sign-in requests rather than budgeting them', () => {
+    // One per address per minute, for as long as somebody keeps asking. The
+    // owner amendment behind this is D-181: a person whose first link was eaten
+    // by a mail gateway must not spend a fifteen-minute allowance discovering
+    // that and then be locked out with no way in.
+    expect(EMAIL_CHALLENGE_PER_EMAIL).toMatchObject({ limit: 1, windowSeconds: 60 });
+  });
+
+  it('keeps the network limit above what one person can consume', () => {
+    // Otherwise the per-address throttle would be undone by the per-network one,
+    // and the eleven-minute lockout would come back through the other door.
+    const perHour = 3600 / EMAIL_CHALLENGE_PER_EMAIL.windowSeconds;
+
+    expect(EMAIL_CHALLENGE_PER_IP.windowSeconds).toBe(3600);
+    expect(EMAIL_CHALLENGE_PER_IP.limit).toBeGreaterThan(perHour);
   });
 
   it('gives every rule its own bucket', () => {

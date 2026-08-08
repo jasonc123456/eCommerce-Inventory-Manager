@@ -48,10 +48,12 @@ export function RequestSetupLinkForm() {
  * Step two: the link's token plus the setup secret.
  *
  * The token arrives in the fragment, exactly as a sign-in link does, and is
- * cleared from the address bar as soon as it has been read.
+ * cleared from the address bar as soon as it has been read. An installation
+ * whose mail gateway rewrites links and drops the fragment carries it in the
+ * query instead (D-182); either way it is cleared and neither is spent on GET.
  */
-export function CompleteSetupForm() {
-  const fragment = useFragmentSecret();
+export function CompleteSetupForm({ carriedToken }: { carriedToken?: string }) {
+  const fragment = useFragmentSecret(carriedToken);
   const [state, action, pending] = useActionState<SetupFormState, FormData>(completeSetupAction, {
     status: 'idle',
   });

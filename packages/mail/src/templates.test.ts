@@ -24,6 +24,24 @@ describe('renderMagicLink', () => {
     expect(parsed.pathname).not.toContain('tok-en_value');
   });
 
+  it('can carry the token in the query for a rewriting mail gateway', () => {
+    // D-182. Microsoft Defender Safe Links and its equivalents rewrite every URL
+    // in a message, and a rewrite that drops the fragment delivers a
+    // confirmation page with nothing in it. Opt-in, because the query is logged
+    // where the fragment is not.
+    const carried = renderMagicLink({
+      ...brand,
+      token: 'tok-en_value',
+      expiresInMinutes: 15,
+      tokenCarrier: 'query',
+    });
+    const url = carried.text.split('\n').find((line) => line.startsWith('https://'))!;
+    const parsed = new URL(url);
+
+    expect(parsed.searchParams.get('t')).toBe('tok-en_value');
+    expect(parsed.hash).toBe('');
+  });
+
   it('points at the configured origin and nowhere else', () => {
     for (const url of extractUrls(message.text)) {
       expect(new URL(url).origin).toBe('https://inventory.example');
