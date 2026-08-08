@@ -2,10 +2,18 @@ import type {
   AdapterCapabilities,
   ChannelAdapter,
   ChannelEntityRef,
+  CreateDraftInput,
+  DraftRef,
+  FeeLine,
   InboundWebhook,
+  ListingOperations,
   Page,
+  PreviewPublicationInput,
   ProviderOrder,
   ProviderOrderRef,
+  PublicationPreview,
+  PublishDraftInput,
+  PublishedListing,
   QuantityObservation,
   QuantityWrite,
   VerifiedWebhook,
@@ -39,6 +47,25 @@ export interface FakeAdapterOptions {
   readonly orders?: ReadonlyMap<string, ProviderOrder>;
   /** Page size for `listEntities`, so pagination itself can be exercised. */
   readonly pageSize?: number;
+  /**
+   * Whether this channel offers reviewed listing operations at all.
+   *
+   * Off by default, so a test that means to exercise drafts has to say so and a
+   * test that does not gets an adapter which cannot publish anything.
+   */
+  readonly listingOperations?: boolean;
+  /** Fees `previewPublication` quotes. */
+  readonly publicationFees?: readonly FeeLine[];
+  /** Provider-side validation that would refuse publication. */
+  readonly publicationBlockers?: readonly string[];
+}
+
+/** A draft this fake is holding, and whether it has been published. */
+export interface RecordedDraft {
+  readonly externalDraftId: string;
+  readonly fields: Readonly<Record<string, string | number | boolean | readonly string[]>>;
+  readonly idempotencyKey: string;
+  published: boolean;
 }
 
 /** A record of one call, so tests can assert on what was actually sent. */
@@ -86,6 +113,17 @@ export class FakeChannelAdapter implements ChannelAdapter {
    */
   private readonly queuedFailures: ProviderFailure[] = [];
 
+  /** Drafts created through `listingOperations`, in order. */
+  public readonly drafts: RecordedDraft[] = [];
+  /** External ids of everything this fake has published. */
+  public readonly published: string[] = [];
+
+  public readonly listingOperations?: ListingOperations;
+
+  private readonly publicationFees: readonly FeeLine[];
+  private readonly publicationBlockers: readonly string[];
+  private nextDraftNumber = 1;
+
   public constructor(options: FakeAdapterOptions = {}) {
     this.capabilities = { ...DEFAULT_CAPABILITIES, ...options.capabilities };
     if (options.provider !== undefined) {
@@ -102,6 +140,121 @@ export class FakeChannelAdapter implements ChannelAdapter {
       this.quantities.set(key, quantity);
       this.versions.set(key, 1);
     }
+
+    this.publicationFees = options.publicationFees ?? [
+      { label: 'Insertion fee', amount: '0.35', currency: 'GBP' },
+      { label: 'Final value fee (estimated)', amount: '1.20', currency: 'GBP' },
+    ];
+    this.publicationBlockers = options.publicationBlockers ?? [];
+
+    if (options.listingOperations === true) {
+      this.listingOperations = {
+        createDraft: (input) => this.createDraft(input),
+        previewPublication: (input) => this.previewPublication(input),
+        publishDraft: (input) => this.publishDraft(input),
+      };
+    }
+  }
+
+  private createDraft(input: CreateDraftInput): Promise<ProviderResult<DraftRef>> {
+    this.calls.push('createDraft');
+    const failure = this.queuedFailures.shift();
+    if (failure !== undefined) {
+      return Promise.resolve(failure);
+    }
+
+    // Replaying a key returns what it returned the first time. A real provider
+    // that honours idempotency does exactly this, and the whole reason the
+    // application carries a key across retries is to get this answer back.
+    const existing = this.drafts.find((draft) => draft.idempotencyKey === input.idempotencyKey);
+    if (existing !== undefined) {
+      return Promise.resolve({
+        status: 'success',
+        value: { externalDraftId: existing.externalDraftId },
+      });
+    }
+
+    // A draft is a draft. A caller that sends a published status has a bug, and
+    // discovering it here rather than on a live storefront is the point.
+    if (input.fields['status'] === 'publish' || input.fields['status'] === 'active') {
+      return Promise.resolve({
+        status: 'rejected',
+        message: 'a draft cannot be created in a published state',
+        code: 'NOT_A_DRAFT',
+      });
+    }
+
+    const externalDraftId = `DRAFT-${String(this.nextDraftNumber++)}`;
+    this.drafts.push({
+      externalDraftId,
+      fields: input.fields,
+      idempotencyKey: input.idempotencyKey,
+      published: false,
+    });
+
+    return Promise.resolve({ status: 'success', value: { externalDraftId } });
+  }
+
+  private previewPublication(
+    input: PreviewPublicationInput,
+  ): Promise<ProviderResult<PublicationPreview>> {
+    this.calls.push('previewPublication');
+    const failure = this.queuedFailures.shift();
+    if (failure !== undefined) {
+      return Promise.resolve(failure);
+    }
+
+    const draft = this.drafts.find((entry) => entry.externalDraftId === input.externalDraftId);
+    if (draft === undefined) {
+      return Promise.resolve({ status: 'not_found', message: `no draft ${input.externalDraftId}` });
+    }
+
+    const total = this.publicationFees.reduce((sum, fee) => sum + Number(fee.amount), 0).toFixed(2);
+
+    return Promise.resolve({
+      status: 'success',
+      value: {
+        fees: this.publicationFees,
+        totalAmount: total,
+        currency: this.publicationFees[0]?.currency ?? 'GBP',
+        warnings: [
+          'listings created here must be revised through this application, not Seller Hub',
+        ],
+        blockers: this.publicationBlockers,
+      },
+    });
+  }
+
+  private publishDraft(input: PublishDraftInput): Promise<ProviderResult<PublishedListing>> {
+    this.calls.push('publishDraft');
+    const failure = this.queuedFailures.shift();
+    if (failure !== undefined) {
+      return Promise.resolve(failure);
+    }
+
+    const draft = this.drafts.find((entry) => entry.externalDraftId === input.externalDraftId);
+    if (draft === undefined) {
+      return Promise.resolve({ status: 'not_found', message: `no draft ${input.externalDraftId}` });
+    }
+
+    if (this.publicationBlockers.length > 0) {
+      return Promise.resolve({
+        status: 'rejected',
+        message: this.publicationBlockers.join('; '),
+        code: 'VALIDATION_FAILED',
+      });
+    }
+
+    const externalListingId = `LISTING-${draft.externalDraftId}`;
+    if (!draft.published) {
+      draft.published = true;
+      this.published.push(externalListingId);
+    }
+
+    return Promise.resolve({
+      status: 'success',
+      value: { externalListingId, revisableOnlyThroughApi: true },
+    });
   }
 
   /** Makes the next call fail. Call repeatedly to queue several. */

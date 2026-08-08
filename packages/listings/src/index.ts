@@ -33,6 +33,21 @@ export {
 } from './draft-fields';
 
 export {
+  DraftRefused,
+  executeDraftCreation,
+  executePublication,
+  proposeDraft,
+  proposePublication,
+  type CreatedDraft,
+  type ExecuteInput,
+  type ProposeDraftInput,
+  type ProposePublicationInput,
+  type ProposedDraft,
+  type ProposedPublication,
+  type PublishedDraft,
+} from './drafts';
+
+export {
   assessFreshness,
   reviewWindowFor,
   sourceAgeMs,

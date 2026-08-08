@@ -191,6 +191,105 @@ export interface ProviderOrderRef {
 }
 
 /**
+ * Operations a person confirms, one at a time (sections 3, 11, 13, 14, 30).
+ *
+ * Kept off `ChannelAdapter` and behind an optional accessor, because these are
+ * the operations a channel might not offer at all and the application has to
+ * degrade knowingly rather than discover it at the moment somebody clicks. An
+ * adapter that cannot create drafts does not implement `createDraft`, the screen
+ * does not offer the button, and there is no code path that calls a method that
+ * is not there.
+ *
+ * Every method takes an idempotency key, and it is required rather than
+ * optional. These operations create listings, change prices, and place orders:
+ * the cost of applying one twice is not a wasted call but a duplicate listing, a
+ * price applied to a price, or a customer's order entered into a shop twice.
+ */
+export interface ListingOperations {
+  /**
+   * Creates an unpublished draft on this channel.
+   *
+   * Never publishes, whatever the fields say. Section 30's US-11 requires that
+   * "publication is impossible from the draft action", and the adapter is where
+   * that has to be true — a projection that omits a publish flag is only a
+   * convention until the thing making the HTTP call refuses to send one.
+   */
+  createDraft?(input: CreateDraftInput): Promise<ProviderResult<DraftRef>>;
+
+  /**
+   * What publishing would cost and what would stop it.
+   *
+   * Section 13 requires "expected fees, warnings, and separate confirmation"
+   * before a draft becomes a listing, and section 30's AC-10 makes fee impact
+   * part of the confirmation rather than a footnote beside it. Read-only: asking
+   * what something costs must never be what buys it.
+   */
+  previewPublication?(input: PreviewPublicationInput): Promise<ProviderResult<PublicationPreview>>;
+
+  /** Publishes a draft that a person has separately confirmed. */
+  publishDraft?(input: PublishDraftInput): Promise<ProviderResult<PublishedListing>>;
+}
+
+export interface CreateDraftInput {
+  /** The reviewed projection, already carrying the reviewer's selections. */
+  readonly fields: Readonly<Record<string, string | number | boolean | readonly string[]>>;
+  readonly idempotencyKey: string;
+}
+
+export interface DraftRef {
+  readonly externalDraftId: string;
+  /** Where a person can go and look at it. Shown, never followed by us. */
+  readonly url?: string;
+}
+
+export interface PreviewPublicationInput {
+  readonly externalDraftId: string;
+}
+
+/** One charge, named as the provider names it. Never summed by the adapter. */
+export interface FeeLine {
+  readonly label: string;
+  /** Decimal string. A fee that has been through a float is not the fee. */
+  readonly amount: string;
+  readonly currency: string;
+}
+
+export interface PublicationPreview {
+  readonly fees: readonly FeeLine[];
+  /**
+   * The provider's own total, when it gives one.
+   *
+   * Absent rather than computed here when it does not. Adding up fee lines
+   * across currencies, or across a provider's own rounding, produces a number
+   * this application would be presenting as the provider's — and a confirmation
+   * screen that quotes a fee the provider never quoted is worse than one that
+   * says the total is unavailable.
+   */
+  readonly totalAmount?: string;
+  readonly currency?: string;
+  readonly warnings: readonly string[];
+  /** Provider-side validation that would refuse this publication. */
+  readonly blockers: readonly string[];
+}
+
+export interface PublishDraftInput {
+  readonly externalDraftId: string;
+  readonly idempotencyKey: string;
+}
+
+export interface PublishedListing {
+  readonly externalListingId: string;
+  readonly url?: string;
+  /**
+   * Section 13: a listing created through the Inventory API "must later be
+   * revised through the app/API, not Seller Hub". Reported by the adapter so
+   * the warning shown after publication is the provider's fact rather than a
+   * guess from the connection's settings.
+   */
+  readonly revisableOnlyThroughApi?: boolean;
+}
+
+/**
  * The operations every channel adapter provides.
  *
  * Deliberately small. Everything a provider offers beyond this is either
@@ -254,6 +353,16 @@ export interface ChannelAdapter {
    * never trusted enough to trigger a read.
    */
   verifyWebhook(webhook: InboundWebhook): Promise<ProviderResult<VerifiedWebhook>>;
+
+  /**
+   * The reviewed operations this channel offers, if any.
+   *
+   * Absent means this adapter takes part in synchronization only. Nothing above
+   * has to be guarded by a capability flag as a result: the operations either
+   * exist here or they do not, so a screen cannot advertise one the adapter has
+   * no method for, and a flag cannot disagree with the code beneath it.
+   */
+  readonly listingOperations?: ListingOperations;
 }
 
 /**
