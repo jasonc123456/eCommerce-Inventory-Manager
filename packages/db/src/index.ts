@@ -51,3 +51,4 @@ export * from './schema/mappings';
 export * from './schema/kits';
 export * from './schema/reservations';
 export * from './schema/jobs';
+export * from './schema/sync';

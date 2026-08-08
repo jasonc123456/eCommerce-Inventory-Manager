@@ -1,0 +1,33 @@
+{
+  "name": "@eim/sync",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "description": "The synchronization core: desired channel targets, order ingestion, the event pipeline, and reconciliation.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@eim/audit": "workspace:*",
+    "@eim/db": "workspace:*",
+    "@eim/domain": "workspace:*",
+    "@eim/inventory": "workspace:*",
+    "@eim/jobs": "workspace:*",
+    "@eim/observability": "workspace:*",
+    "@eim/providers": "workspace:*",
+    "drizzle-orm": "catalog:"
+  },
+  "devDependencies": {
+    "@eim/testing": "workspace:*",
+    "@types/node": "catalog:",
+    "fast-check": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

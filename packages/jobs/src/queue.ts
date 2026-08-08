@@ -119,7 +119,7 @@ export async function enqueue(db: QueueExecutor, input: EnqueueInput): Promise<E
     )
     -- Matches the partial unique index exactly, so the coalescing rule is the
     -- index's rather than this statement's opinion of it.
-    on conflict (dedupe_key) where status in ('ready', 'running') and dedupe_key is not null
+    on conflict (dedupe_key) where status = 'ready' and dedupe_key is not null
       do nothing
     returning ${jobColumns}
   `);
@@ -134,7 +134,7 @@ export async function enqueue(db: QueueExecutor, input: EnqueueInput): Promise<E
   const existing = await db.execute<JobRow>(sql`
     select ${jobColumns} from background_jobs
      where dedupe_key = ${input.dedupeKey ?? null}
-       and status in ('ready', 'running')
+       and status = 'ready'
      limit 1
   `);
 

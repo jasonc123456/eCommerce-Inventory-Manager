@@ -233,11 +233,24 @@ export async function projectItem(
     const chosen = projections.filter((projection) => selected.includes(projection.locationId));
     const rules = { channelBuffer: mapping.channelBuffer, channelCap: mapping.channelCap };
 
-    const current = channelTarget(availableToSellAcrossLocations(asBalances(chosen, false)), rules);
-    const projected = channelTarget(
-      availableToSellAcrossLocations(asBalances(chosen, true)),
-      rules,
-    );
+    // A kit has no stock of its own (section 10), so its channel availability is
+    // what its components can build within this mapping's locations. Reading its
+    // own balances would advertise zero for every kit ever mapped.
+    const availableNow = item.isKit
+      ? await capacityWithin(db, {
+          businessId: input.businessId,
+          kitCanonicalItemId: input.canonicalItemId,
+          locationIds: selected,
+        })
+      : availableToSellAcrossLocations(asBalances(chosen, false));
+
+    const current = channelTarget(availableNow, rules);
+    // A hypothetical movement against a kit is a movement against its
+    // components, which `projectKits` already declines to project a second way.
+    // Reporting the current figure is the same decision, kept consistent.
+    const projected = item.isKit
+      ? current
+      : channelTarget(availableToSellAcrossLocations(asBalances(chosen, true)), rules);
 
     channels.push({
       mappingId: mapping.mappingId,
@@ -343,6 +356,31 @@ async function projectKits(
   }
 
   return effects;
+}
+
+/**
+ * How many of this kit the selected locations can build, or zero.
+ *
+ * Zero rather than an error when there is no active recipe or a component is
+ * missing: a channel target has to be a number, and the safe number for a kit
+ * that cannot currently be built is none. The reason is not lost — the mapping
+ * carries it, and the kit screen reports it in full.
+ */
+async function capacityWithin(
+  db: ProjectionReader,
+  input: {
+    readonly businessId: string;
+    readonly kitCanonicalItemId: string;
+    readonly locationIds: readonly string[];
+  },
+): Promise<number> {
+  const capacity = await kitCapacity(db, {
+    businessId: input.businessId,
+    kitCanonicalItemId: input.kitCanonicalItemId,
+    locationIds: input.locationIds,
+  });
+
+  return capacity.outcome === 'computed' ? capacity.capacity.capacity : 0;
 }
 
 async function readSelectedLocations(
