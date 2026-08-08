@@ -124,4 +124,25 @@ export {
   type WriteTargetResult,
 } from './activation';
 
+export {
+  approveRecipe,
+  declareKit,
+  describeOverlap,
+  draftRecipe,
+  kitCapacity,
+  kitsUsingComponent,
+  readActiveRecipe,
+  readRecipe,
+  type ApproveRecipeResult,
+  type DeclareKitResult,
+  type DraftRecipeResult,
+  type KitCapacity,
+  type KitCapacityResult,
+  type KitDatabase,
+  type KitOverlap,
+  type KitReader,
+  type RecipeComponent,
+  type RecipeSummary,
+} from './kits';
+
 export { isCheckViolation, isUniqueViolation } from './errors';

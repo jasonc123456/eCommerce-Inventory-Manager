@@ -151,12 +151,21 @@ export const canonicalItems = pgTable(
      * (section 8). Null inherits; a stored 0 withholds nothing deliberately.
      */
     safetyStockOverride: integer('safety_stock_override'),
+    /**
+     * A kit has no independent physical stock (section 10). Composite foreign
+     * keys from `inventory_ledger` and `location_balances` require this to be
+     * false, so a kit cannot acquire counted units by any path.
+     */
+    isKit: boolean('is_kit').notNull().default(false),
     isActive: boolean('is_active').notNull().default(true),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
   },
-  (table) => [unique('canonical_items_business_scoped').on(table.businessId, table.id)],
+  (table) => [
+    unique('canonical_items_business_scoped').on(table.businessId, table.id),
+    unique('canonical_items_kind_scoped').on(table.businessId, table.id, table.isKit),
+  ],
 );
 
 export const businessesRelations = relations(businesses, ({ many }) => ({
