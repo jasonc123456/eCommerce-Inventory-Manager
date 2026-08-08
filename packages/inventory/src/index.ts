@@ -104,4 +104,24 @@ export {
   type ReviseMappingResult,
 } from './mappings';
 
+export {
+  activateMapping,
+  assessVariationCompleteness,
+  pauseIncompleteVariationListings,
+  pauseMapping,
+  previewActivation,
+  resolveWriteTarget,
+  writableMappingsForItem,
+  type ActivationDatabase,
+  type ActivationPreview,
+  type ActivationPreviewResult,
+  type ActivationReader,
+  type ActivationResult,
+  type InitializationSource,
+  type PauseResult,
+  type VariationCompleteness,
+  type WriteTarget,
+  type WriteTargetResult,
+} from './activation';
+
 export { isCheckViolation, isUniqueViolation } from './errors';
