@@ -93,6 +93,12 @@ export default defineConfig({
         // windows are what stop a stale one being applied to different ones.
         'packages/listings/src/fingerprint.ts',
         'packages/listings/src/freshness.ts',
+        // Section 6's conversion matrix and what a converted draft would say.
+        // Both are pure decision tables, and in both the refusals and the
+        // absences are the behaviour: an unmeasured branch is a product type
+        // converted that should not have been, or a field silently dropped.
+        'packages/listings/src/draft-eligibility.ts',
+        'packages/listings/src/draft-fields.ts',
         // The web tier's security-critical pure helpers. The screens and server
         // actions are not measured here: they need a browser and a session, and
         // the integration and Compose tiers are where they are exercised.
@@ -238,6 +244,18 @@ export default defineConfig({
           statements: 90,
         },
         'packages/listings/src/freshness.ts': {
+          branches: 90,
+          functions: 90,
+          lines: 90,
+          statements: 90,
+        },
+        'packages/listings/src/draft-eligibility.ts': {
+          branches: 90,
+          functions: 90,
+          lines: 90,
+          statements: 90,
+        },
+        'packages/listings/src/draft-fields.ts': {
           branches: 90,
           functions: 90,
           lines: 90,
