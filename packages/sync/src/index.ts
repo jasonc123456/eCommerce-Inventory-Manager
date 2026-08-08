@@ -14,3 +14,21 @@ export {
   type TargetRow,
   type WriteSettlement,
 } from './targets';
+
+export {
+  claimEvent,
+  completeEvent,
+  fingerprintOf,
+  pruneProcessedEvents,
+  type EventClaim,
+  type EventIdentity,
+} from './events';
+
+export {
+  ingestOrder,
+  type IngestInput,
+  type IngestResult,
+  type LineOutcome,
+  type NormalizedOrder,
+  type NormalizedOrderLine,
+} from './orders';

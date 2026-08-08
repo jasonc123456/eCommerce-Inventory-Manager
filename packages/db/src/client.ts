@@ -11,6 +11,7 @@ import * as kits from './schema/kits';
 import * as mappings from './schema/mappings';
 import * as reservations from './schema/reservations';
 import * as providerMirror from './schema/provider-mirror';
+import * as orders from './schema/orders';
 import * as sync from './schema/sync';
 import * as tenancy from './schema/tenancy';
 
@@ -44,6 +45,7 @@ export const schema = {
   ...reservations,
   ...jobs,
   ...sync,
+  ...orders,
 };
 export type Schema = typeof schema;
 export type Database = NodePgDatabase<Schema>;
