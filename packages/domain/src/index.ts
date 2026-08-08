@@ -10,4 +10,11 @@ export {
   type LocationBalance,
 } from './availability';
 
+export {
+  effectiveSafetyStock,
+  safetyStockSource,
+  type SafetyStockLevels,
+  type SafetyStockSource,
+} from './safety-stock';
+
 export { DomainError } from './errors';

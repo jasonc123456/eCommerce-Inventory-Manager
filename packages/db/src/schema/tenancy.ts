@@ -3,6 +3,7 @@ import {
   boolean,
   customType,
   index,
+  integer,
   pgTable,
   text,
   timestamp,
@@ -119,7 +120,10 @@ export const locations = pgTable(
       .references(() => businesses.id, { onDelete: 'cascade' }),
     code: text('code').notNull(),
     name: text('name').notNull(),
+    description: text('description'),
     timezone: text('timezone').notNull().default('UTC'),
+    /** Allocation order. Lower sorts first; ties break by code (section 9). */
+    priority: integer('priority').notNull().default(100),
     isActive: boolean('is_active').notNull().default(true),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -141,6 +145,12 @@ export const canonicalItems = pgTable(
       .references(() => businesses.id, { onDelete: 'cascade' }),
     sku: text('sku').notNull(),
     name: text('name').notNull(),
+    description: text('description'),
+    /**
+     * Per-item safety stock, including zero, overriding the business default
+     * (section 8). Null inherits; a stored 0 withholds nothing deliberately.
+     */
+    safetyStockOverride: integer('safety_stock_override'),
     isActive: boolean('is_active').notNull().default(true),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
