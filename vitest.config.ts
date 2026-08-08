@@ -82,6 +82,11 @@ export default defineConfig({
         // queue and the runner around it need a database and a worker loop and
         // are proven by the integration project instead.
         'packages/jobs/src/retry.ts',
+        // How often a connection is swept and why it is not what was asked
+        // for. Pure for the same reason the retry schedule is: the adaptation
+        // rules are only testable as properties if nothing in them reads a
+        // clock or a database.
+        'packages/sync/src/cadence.ts',
         // The web tier's security-critical pure helpers. The screens and server
         // actions are not measured here: they need a browser and a session, and
         // the integration and Compose tiers are where they are exercised.
@@ -202,6 +207,15 @@ export default defineConfig({
         // inventory-safety failures: the first hammers a provider into a
         // lockout, the second silently abandons a quantity write.
         'packages/jobs/src/retry.ts': {
+          branches: 90,
+          functions: 90,
+          lines: 90,
+          statements: 90,
+        },
+        // An unmeasured branch here is a throttle that never lifts or one that
+        // never applies: the first stalls synchronization silently, the second
+        // spends a provider quota until the connection is cut off.
+        'packages/sync/src/cadence.ts': {
           branches: 90,
           functions: 90,
           lines: 90,

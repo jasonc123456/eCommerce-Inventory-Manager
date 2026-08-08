@@ -3,6 +3,7 @@ import pg from 'pg';
 
 import * as audit from './schema/audit';
 import * as background from './schema/background';
+import * as cadence from './schema/cadence';
 import * as connections from './schema/connections';
 import * as identity from './schema/identity';
 import * as inventory from './schema/inventory';
@@ -48,6 +49,7 @@ export const schema = {
   ...sync,
   ...orders,
   ...restocks,
+  ...cadence,
 };
 export type Schema = typeof schema;
 export type Database = NodePgDatabase<Schema>;

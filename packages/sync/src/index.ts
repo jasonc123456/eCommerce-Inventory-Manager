@@ -65,3 +65,28 @@ export {
   handleOrderSync,
   requestOrderSync,
 } from './pipeline';
+
+export {
+  DEFAULT_INTERVAL_SECONDS,
+  FIXED_CADENCES,
+  MAX_INTERVAL_SECONDS,
+  MIN_INTERVAL_SECONDS,
+  clampInterval,
+  effectiveCadence,
+  isDue,
+  type Cadence,
+  type CadenceInput,
+  type ConnectionHealth,
+  type QuotaPressure,
+} from './cadence';
+
+export {
+  readSyncSettings,
+  schedulableConnections,
+  scheduleConnection,
+  setSyncPaused,
+  setTargetInterval,
+  type ScheduleResult,
+  type SetIntervalResult,
+  type SyncSettings,
+} from './schedule';
