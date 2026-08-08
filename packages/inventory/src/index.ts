@@ -164,4 +164,14 @@ export {
   type ReserveResult,
 } from './reservations';
 
+export {
+  projectItem,
+  type ChannelProjection,
+  type HypotheticalChange,
+  type ItemProjection,
+  type KitEffect,
+  type LocationProjection,
+  type ProjectionReader,
+} from './projection';
+
 export { isCheckViolation, isUniqueViolation } from './errors';

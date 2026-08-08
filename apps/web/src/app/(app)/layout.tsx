@@ -70,6 +70,15 @@ export default async function ApplicationLayout({ children }: { children: ReactN
         </div>
 
         <nav className="flex items-center gap-4 text-sm">
+          <Link href="/inventory" className="underline">
+            Inventory
+          </Link>
+          <Link href="/mappings" className="underline">
+            Mappings
+          </Link>
+          <Link href="/connections" className="underline">
+            Connections
+          </Link>
           <Link href="/members" className="underline">
             Members
           </Link>

@@ -20,6 +20,7 @@
     "@eim/domain": "workspace:*",
     "@eim/identity": "workspace:*",
     "@eim/integrations": "workspace:*",
+    "@eim/inventory": "workspace:*",
     "@eim/mail": "workspace:*",
     "@eim/observability": "workspace:*",
     "@eim/providers": "workspace:*",

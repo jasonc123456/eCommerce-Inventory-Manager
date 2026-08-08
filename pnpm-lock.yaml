@@ -224,6 +224,9 @@ importers:
       '@eim/integrations':
         specifier: workspace:*
         version: link:../../packages/integrations
+      '@eim/inventory':
+        specifier: workspace:*
+        version: link:../../packages/inventory
       '@eim/mail':
         specifier: workspace:*
         version: link:../../packages/mail

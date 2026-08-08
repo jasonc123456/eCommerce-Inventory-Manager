@@ -87,6 +87,34 @@ export const AUDIT_ACTIONS = [
   'connection.webhook_rotation_started',
   'connection.disconnected',
 
+  // --- Inventory -----------------------------------------------------------
+  //
+  // Sections 7, 8, 9, and 10. The ledger already records every stock movement
+  // with its actor and reason, so these are the decisions *around* the stock
+  // rather than the movements themselves: what may be sold where, what a kit is
+  // made of, and which mapping is allowed to write to a live storefront.
+  // Activation is the one that matters most — it is the moment a mapping starts
+  // changing what a customer sees.
+  'inventory.location.created',
+  'inventory.location.updated',
+  'inventory.location.archived',
+  'inventory.item.created',
+  'inventory.item.updated',
+  'inventory.adjusted',
+  'inventory.transferred',
+  'inventory.entry_reversed',
+  'inventory.settings.updated',
+  'inventory.consumption_mode.switched',
+  'inventory.mapping.proposed',
+  'inventory.mapping.approved',
+  'inventory.mapping.revised',
+  'inventory.mapping.activated',
+  'inventory.mapping.paused',
+  'inventory.mapping.archived',
+  'inventory.kit.recipe_drafted',
+  'inventory.kit.recipe_approved',
+  'inventory.reservation.released',
+
   // --- Installation --------------------------------------------------------
   'installation.bootstrap.completed',
   'installation.bootstrap.failed',
