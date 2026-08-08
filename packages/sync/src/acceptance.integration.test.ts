@@ -554,6 +554,42 @@ describe('twenty-four hour outage', () => {
   });
 });
 
+/**
+ * How many database calls this file makes at once.
+ *
+ * The harness pool holds five connections. `Promise.all` over five thousand
+ * enqueues does not run five thousand statements — it runs five and leaves
+ * 4,995 waiting on `connect`, which on a slower machine exceeds the connect
+ * timeout and fails the test for a reason that has nothing to do with the
+ * queue. Bounding the fan-out to the pool is what makes the load case measure
+ * the queue rather than the pool.
+ */
+const POOL_WORKERS = 4;
+
+/** Runs `count` pieces of work with at most `workers` in flight. */
+async function withConcurrency(
+  count: number,
+  workers: number,
+  work: (index: number) => Promise<void>,
+): Promise<void> {
+  let next = 0;
+
+  await Promise.all(
+    Array.from({ length: workers }, async () => {
+      for (;;) {
+        const index = next;
+        next += 1;
+
+        if (index >= count) {
+          return;
+        }
+
+        await work(index);
+      }
+    }),
+  );
+}
+
 describe('five thousand mappings', () => {
   const SCALE = 5000;
 
@@ -566,17 +602,15 @@ describe('five thousand mappings', () => {
     const fixture = await seed(0);
 
     const enqueuedAt = Date.now();
-    await Promise.all(
-      Array.from({ length: SCALE }, async (_, index) =>
-        enqueue(harness.db, {
-          kind: 'load.write',
-          businessId: fixture.businessId,
-          connectionId: fixture.connectionId,
-          serializationKey: `mapping:load-${String(index)}`,
-          payload: { index },
-        }),
-      ),
-    );
+    await withConcurrency(SCALE, POOL_WORKERS, async (index) => {
+      await enqueue(harness.db, {
+        kind: 'load.write',
+        businessId: fixture.businessId,
+        connectionId: fixture.connectionId,
+        serializationKey: `mapping:load-${String(index)}`,
+        payload: { index },
+      });
+    });
     const enqueueMs = Date.now() - enqueuedAt;
 
     const queued = await harness.db.execute<{ count: string }>(sql`
@@ -585,17 +619,18 @@ describe('five thousand mappings', () => {
     `);
 
     expect(queued.rows[0]?.count).toBe(String(SCALE));
-    // Generous by design: this is a guard against an accidental per-row query
-    // or a missing index, not a performance target.
-    expect(enqueueMs).toBeLessThan(60_000);
+    // Generous by design, and deliberately so: this is a guard against an
+    // accidental per-row query or a missing index, not a performance target. A
+    // shared CI runner is not a machine to make timing promises on.
+    expect(enqueueMs).toBeLessThan(120_000);
 
-    // Eight workers drain it. Each job has its own serialization key, so all
-    // eight should be able to work at once rather than queueing behind one.
+    // Several workers drain it at once. Each job has its own serialization key,
+    // so none of them should queue behind another.
     const claimedIds = new Set<string>();
     const drainedAt = Date.now();
 
     await Promise.all(
-      Array.from({ length: 8 }, async () => {
+      Array.from({ length: POOL_WORKERS }, async () => {
         for (;;) {
           const job = await claim(harness.db, {
             workerId: crypto.randomUUID(),
@@ -618,7 +653,7 @@ describe('five thousand mappings', () => {
     // Every job claimed exactly once. A duplicate would show as a smaller set
     // than the number of jobs, because the same id would be added twice.
     expect(claimedIds.size).toBe(SCALE);
-    expect(drainMs).toBeLessThan(120_000);
+    expect(drainMs).toBeLessThan(180_000);
 
     const unfinished = await harness.db.execute<{ count: string }>(sql`
       select count(*)::text as count from background_jobs
@@ -627,7 +662,7 @@ describe('five thousand mappings', () => {
     `);
 
     expect(unfinished.rows[0]?.count).toBe('0');
-  }, 300_000);
+  }, 420_000);
 });
 
 describe('the write gate, end to end', () => {
