@@ -57,6 +57,28 @@ export {
 } from './freshness';
 
 export {
+  AmountError,
+  compareAmounts,
+  isAmount,
+  isSameAmount,
+  percentageDifference,
+  subtractAmounts,
+} from './money';
+
+export {
+  PriceCopyRefused,
+  comparePrices,
+  executePriceCopy,
+  proposePriceCopy,
+  type AppliedPriceCopy,
+  type ExecutePriceCopyInput,
+  type PriceComparison,
+  type PriceSide,
+  type ProposePriceCopyInput,
+  type ProposedPriceCopy,
+} from './prices';
+
+export {
   ReviewedOperationError,
   beginExecution,
   cancelOperation,

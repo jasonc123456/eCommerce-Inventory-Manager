@@ -9,6 +9,10 @@ import type {
   ListingOperations,
   Page,
   PreviewPublicationInput,
+  PriceAcknowledgement,
+  PriceChangePreview,
+  PriceObservation,
+  PriceWrite,
   ProviderOrder,
   ProviderOrderRef,
   PublicationPreview,
@@ -58,6 +62,18 @@ export interface FakeAdapterOptions {
   readonly publicationFees?: readonly FeeLine[];
   /** Provider-side validation that would refuse publication. */
   readonly publicationBlockers?: readonly string[];
+  /** Starting prices, keyed by the entity key. */
+  readonly initialPrices?: ReadonlyMap<string, { amount: string; currency: string }>;
+  /** Entity keys currently running a sale price, and what it is. */
+  readonly salePrices?: ReadonlyMap<string, string>;
+}
+
+/** A price this fake was asked to write. */
+export interface RecordedPriceWrite {
+  readonly entityKey: string;
+  readonly amount: string;
+  readonly currency: string;
+  readonly idempotencyKey: string;
 }
 
 /** A draft this fake is holding, and whether it has been published. */
@@ -120,9 +136,14 @@ export class FakeChannelAdapter implements ChannelAdapter {
 
   public readonly listingOperations?: ListingOperations;
 
+  /** Every price this fake was asked to write, in order. */
+  public readonly priceWrites: RecordedPriceWrite[] = [];
+
   private readonly publicationFees: readonly FeeLine[];
   private readonly publicationBlockers: readonly string[];
   private nextDraftNumber = 1;
+  private readonly prices = new Map<string, { amount: string; currency: string }>();
+  private readonly salePrices = new Map<string, string>();
 
   public constructor(options: FakeAdapterOptions = {}) {
     this.capabilities = { ...DEFAULT_CAPABILITIES, ...options.capabilities };
@@ -147,13 +168,144 @@ export class FakeChannelAdapter implements ChannelAdapter {
     ];
     this.publicationBlockers = options.publicationBlockers ?? [];
 
+    for (const [key, price] of options.initialPrices ?? []) {
+      this.prices.set(key, price);
+      this.versions.set(key, this.versions.get(key) ?? 1);
+    }
+    for (const [key, amount] of options.salePrices ?? []) {
+      this.salePrices.set(key, amount);
+    }
+
     if (options.listingOperations === true) {
       this.listingOperations = {
         createDraft: (input) => this.createDraft(input),
         previewPublication: (input) => this.previewPublication(input),
         publishDraft: (input) => this.publishDraft(input),
+        readPrice: (entity) => this.readPrice(entity),
+        previewPriceChange: (input) => this.previewPriceChange(input),
+        writePrice: (input) => this.writePrice(input),
       };
     }
+  }
+
+  /** Simulates a price edited on the channel by somebody else. */
+  public setPriceOutOfBand(entity: ChannelEntityRef, amount: string, currency: string): this {
+    const key = entityKey(entity);
+    this.prices.set(key, { amount, currency });
+    this.versions.set(key, (this.versions.get(key) ?? 0) + 1);
+    return this;
+  }
+
+  public priceOf(entity: ChannelEntityRef): { amount: string; currency: string } | undefined {
+    return this.prices.get(entityKey(entity));
+  }
+
+  private readPrice(entity: ChannelEntityRef): Promise<ProviderResult<PriceObservation>> {
+    this.calls.push('readPrice');
+    const failure = this.queuedFailures.shift();
+    if (failure !== undefined) {
+      return Promise.resolve(failure);
+    }
+
+    const key = entityKey(entity);
+    const price = this.prices.get(key);
+    if (price === undefined) {
+      return Promise.resolve({ status: 'not_found', message: `no price for ${key}` });
+    }
+
+    const salePrice = this.salePrices.get(key);
+
+    return Promise.resolve({
+      status: 'success',
+      value: {
+        entity,
+        amount: price.amount,
+        currency: price.currency,
+        version: String(this.versions.get(key) ?? 1),
+        observedAt: new Date(0),
+        ...(salePrice === undefined ? {} : { salePriceAmount: salePrice }),
+      },
+    });
+  }
+
+  private previewPriceChange(input: PriceWrite): Promise<ProviderResult<PriceChangePreview>> {
+    this.calls.push('previewPriceChange');
+    const failure = this.queuedFailures.shift();
+    if (failure !== undefined) {
+      return Promise.resolve(failure);
+    }
+
+    const key = entityKey(input.entity);
+    if (!this.prices.has(key)) {
+      return Promise.resolve({ status: 'not_found', message: `no price for ${key}` });
+    }
+
+    // A flat proportion of the new price, which is close enough to how a final
+    // value fee behaves for the application to have something real to show.
+    const fee = (Number(input.amount) * 0.1).toFixed(2);
+
+    return Promise.resolve({
+      status: 'success',
+      value: {
+        fees: [{ label: 'Final value fee (estimated)', amount: fee, currency: input.currency }],
+        totalAmount: fee,
+        currency: input.currency,
+        warnings: [],
+        blockers: this.publicationBlockers,
+      },
+    });
+  }
+
+  private writePrice(input: PriceWrite): Promise<ProviderResult<PriceAcknowledgement>> {
+    this.calls.push('writePrice');
+    const failure = this.queuedFailures.shift();
+    if (failure !== undefined) {
+      return Promise.resolve(failure);
+    }
+
+    const key = entityKey(input.entity);
+    const current = this.prices.get(key);
+    if (current === undefined) {
+      return Promise.resolve({ status: 'not_found', message: `no price for ${key}` });
+    }
+
+    const currentVersion = String(this.versions.get(key) ?? 1);
+    if (input.expectedVersion !== undefined && input.expectedVersion !== currentVersion) {
+      return Promise.resolve({
+        status: 'conflict',
+        message: `the price of ${key} changed since it was read`,
+        currentVersion,
+      });
+    }
+
+    // Replaying a key changes nothing and reports what it reported before, which
+    // is what an idempotency key is for.
+    const replay = this.priceWrites.some((write) => write.idempotencyKey === input.idempotencyKey);
+    if (!replay) {
+      this.priceWrites.push({
+        entityKey: key,
+        amount: input.amount,
+        currency: input.currency,
+        idempotencyKey: input.idempotencyKey,
+      });
+    }
+
+    const unchanged = current.amount === input.amount && current.currency === input.currency;
+    if (!unchanged && !replay) {
+      this.prices.set(key, { amount: input.amount, currency: input.currency });
+      this.versions.set(key, Number(currentVersion) + 1);
+    }
+
+    return Promise.resolve({
+      status: 'success',
+      value: {
+        entity: input.entity,
+        amount: input.amount,
+        currency: input.currency,
+        version: String(this.versions.get(key) ?? 1),
+        unchanged,
+      },
+    });
   }
 
   private createDraft(input: CreateDraftInput): Promise<ProviderResult<DraftRef>> {

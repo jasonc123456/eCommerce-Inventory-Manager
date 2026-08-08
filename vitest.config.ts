@@ -99,6 +99,10 @@ export default defineConfig({
         // converted that should not have been, or a field silently dropped.
         'packages/listings/src/draft-eligibility.ts',
         'packages/listings/src/draft-fields.ts',
+        // Decimal arithmetic on prices. The whole reason prices are stored as
+        // strings is undone by one comparison screen that parses them into
+        // doubles, so this is measured like the rest of the safety domain.
+        'packages/listings/src/money.ts',
         // The web tier's security-critical pure helpers. The screens and server
         // actions are not measured here: they need a browser and a session, and
         // the integration and Compose tiers are where they are exercised.
@@ -256,6 +260,12 @@ export default defineConfig({
           statements: 90,
         },
         'packages/listings/src/draft-fields.ts': {
+          branches: 90,
+          functions: 90,
+          lines: 90,
+          statements: 90,
+        },
+        'packages/listings/src/money.ts': {
           branches: 90,
           functions: 90,
           lines: 90,

@@ -228,6 +228,72 @@ export interface ListingOperations {
 
   /** Publishes a draft that a person has separately confirmed. */
   publishDraft?(input: PublishDraftInput): Promise<ProviderResult<PublishedListing>>;
+
+  /**
+   * Reads what this channel is currently charging.
+   *
+   * Sections 13 and 14 both say the same thing about prices: they are "observed
+   * channel values, not canonical inventory state". Nothing in the automatic
+   * synchronization path reads this, and nothing writes a price without a
+   * person having confirmed that specific number.
+   */
+  readPrice?(entity: ChannelEntityRef): Promise<ProviderResult<PriceObservation>>;
+
+  /**
+   * What a price change would cost, and what would stop it.
+   *
+   * Separate from the publication preview because the fees differ: a final value
+   * fee scales with the price, so changing one changes what the next sale costs.
+   * Section 30's AC-10 requires fee impact at the moment of confirmation, and a
+   * price change has one even though nothing is being listed.
+   */
+  previewPriceChange?(input: PriceWrite): Promise<ProviderResult<PriceChangePreview>>;
+
+  /** Writes one confirmed price. Never called except from a confirmation. */
+  writePrice?(input: PriceWrite): Promise<ProviderResult<PriceAcknowledgement>>;
+}
+
+export interface PriceObservation {
+  readonly entity: ChannelEntityRef;
+  /** Decimal string, as the provider quoted it. */
+  readonly amount: string;
+  readonly currency: string;
+  /**
+   * A sale price currently overriding the regular one, when there is one.
+   *
+   * Reported because section 14 requires "sale-price implications" to be shown
+   * before a change is confirmed: raising a regular price that a sale price is
+   * currently undercutting changes nothing a customer sees, and somebody
+   * confirming that change should know it.
+   */
+  readonly salePriceAmount?: string;
+  readonly version?: string;
+  readonly observedAt?: Date;
+}
+
+export interface PriceWrite {
+  readonly entity: ChannelEntityRef;
+  readonly amount: string;
+  readonly currency: string;
+  readonly expectedVersion?: string;
+  readonly idempotencyKey: string;
+}
+
+export interface PriceChangePreview {
+  readonly fees: readonly FeeLine[];
+  readonly totalAmount?: string;
+  readonly currency?: string;
+  readonly warnings: readonly string[];
+  readonly blockers: readonly string[];
+}
+
+export interface PriceAcknowledgement {
+  readonly entity: ChannelEntityRef;
+  readonly amount: string;
+  readonly currency: string;
+  readonly version?: string;
+  /** True when the provider reported the price was already this. */
+  readonly unchanged: boolean;
 }
 
 export interface CreateDraftInput {
