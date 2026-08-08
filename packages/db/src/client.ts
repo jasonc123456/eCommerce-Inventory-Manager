@@ -6,6 +6,7 @@ import * as background from './schema/background';
 import * as connections from './schema/connections';
 import * as identity from './schema/identity';
 import * as inventory from './schema/inventory';
+import * as jobs from './schema/jobs';
 import * as kits from './schema/kits';
 import * as mappings from './schema/mappings';
 import * as reservations from './schema/reservations';
@@ -40,6 +41,7 @@ export const schema = {
   ...mappings,
   ...kits,
   ...reservations,
+  ...jobs,
 };
 export type Schema = typeof schema;
 export type Database = NodePgDatabase<Schema>;

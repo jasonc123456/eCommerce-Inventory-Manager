@@ -76,6 +76,12 @@ export default defineConfig({
         // by the integration project instead.
         'packages/integrations/src/quota-policy.ts',
         'packages/integrations/src/health-policy.ts',
+        // When a failed job runs again, and when it stops. Pure and clock-free
+        // on purpose: the ten-attempt ceiling and the 24-hour window are only
+        // testable as properties because nothing in here reads a clock. The
+        // queue and the runner around it need a database and a worker loop and
+        // are proven by the integration project instead.
+        'packages/jobs/src/retry.ts',
         // The web tier's security-critical pure helpers. The screens and server
         // actions are not measured here: they need a browser and a session, and
         // the integration and Compose tiers are where they are exercised.
@@ -186,6 +192,16 @@ export default defineConfig({
           statements: 90,
         },
         'packages/integrations/src/health-policy.ts': {
+          branches: 90,
+          functions: 90,
+          lines: 90,
+          statements: 90,
+        },
+        // An unmeasured branch here is a job that retries when it should have
+        // stopped, or stops when it should have retried. Both are section 25
+        // inventory-safety failures: the first hammers a provider into a
+        // lockout, the second silently abandons a quantity write.
+        'packages/jobs/src/retry.ts': {
           branches: 90,
           functions: 90,
           lines: 90,
