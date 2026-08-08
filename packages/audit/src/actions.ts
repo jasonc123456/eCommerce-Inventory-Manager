@@ -115,6 +115,39 @@ export const AUDIT_ACTIONS = [
   'inventory.kit.recipe_approved',
   'inventory.reservation.released',
 
+  // --- Reviewed listing operations -----------------------------------------
+  //
+  // Sections 11, 13, 14, and 30. Section 19 requires audit coverage of
+  // publication and pricing mutations; these cover the decision as well as the
+  // effect, because for this family of operations the decision is the control.
+  //
+  // `refused` is the one worth explaining. It records a confirmation that did
+  // not go through — the preview had moved, the read had gone stale, the
+  // permission was missing, the authentication was too old. Nothing changed, so
+  // by the usual standard there is nothing to record; but these refusals are the
+  // only evidence that the confirmation gate does anything, and a gate that has
+  // never been observed to refuse is indistinguishable from an open door.
+  // Publication is one action rather than one per platform. What differs
+  // between publishing an eBay listing and a WooCommerce product is the
+  // permission demanded, and the operation record already names that; two
+  // actions would only mean every query about "what went live" had to remember
+  // both spellings.
+  'listing.operation.proposed',
+  'listing.operation.confirmed',
+  'listing.operation.refused',
+  'listing.operation.cancelled',
+  'listing.draft.created',
+  'listing.draft.published',
+  'listing.price.changed',
+  'listing.restocked_to_live',
+
+  // --- Orders --------------------------------------------------------------
+  //
+  // Section 11's optional manual copy, and the only order action there is: this
+  // application observes orders rather than creating them, and this is the one
+  // place it creates one.
+  'order.copied_to_woocommerce',
+
   // --- Installation --------------------------------------------------------
   'installation.bootstrap.completed',
   'installation.bootstrap.failed',

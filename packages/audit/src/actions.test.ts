@@ -35,7 +35,9 @@ describe('the action catalogue', () => {
       'connection',
       'installation',
       'inventory',
+      'listing',
       'member',
+      'order',
       'user',
     ]);
   });

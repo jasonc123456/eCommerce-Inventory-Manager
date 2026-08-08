@@ -87,6 +87,12 @@ export default defineConfig({
         // rules are only testable as properties if nothing in them reads a
         // clock or a database.
         'packages/sync/src/cadence.ts',
+        // What a person agreed to, and for how long that stays true. Both are
+        // the confirmation gate rather than decoration around it: the hash is
+        // what makes a confirmation refer to one exact set of values, and the
+        // windows are what stop a stale one being applied to different ones.
+        'packages/listings/src/fingerprint.ts',
+        'packages/listings/src/freshness.ts',
         // The web tier's security-critical pure helpers. The screens and server
         // actions are not measured here: they need a browser and a session, and
         // the integration and Compose tiers are where they are exercised.
@@ -216,6 +222,22 @@ export default defineConfig({
         // never applies: the first stalls synchronization silently, the second
         // spends a provider quota until the connection is cut off.
         'packages/sync/src/cadence.ts': {
+          branches: 90,
+          functions: 90,
+          lines: 90,
+          statements: 90,
+        },
+        // An unmeasured branch here is a confirmation that passes when it should
+        // have been refused. That is section 25's security domain exactly: what
+        // these two refuse is the whole protection, and section 3's exclusion of
+        // automatic publication and recurring price changes rests on them.
+        'packages/listings/src/fingerprint.ts': {
+          branches: 90,
+          functions: 90,
+          lines: 90,
+          statements: 90,
+        },
+        'packages/listings/src/freshness.ts': {
           branches: 90,
           functions: 90,
           lines: 90,

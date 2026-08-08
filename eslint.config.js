@@ -30,6 +30,26 @@ const FRAMEWORK_AND_IO = [
   },
 ];
 
+/**
+ * No automatic path to a reviewed operation (sections 3, 30).
+ *
+ * Milestone 5's exit gate requires that "no auto-publication/recurring-price
+ * path exists". A test can show that nothing currently publishes by itself; only
+ * this can show that nothing can be made to. The automatic tier — the scheduler,
+ * the queue, and the worker that drains it — cannot import the package that
+ * publishes listings, changes prices, or copies orders, so wiring one into a
+ * background job is a build failure rather than a code review somebody has to
+ * catch.
+ *
+ * The dependency runs the other way and always will: a reviewed operation may
+ * enqueue work, and does. What it must never be is something work can enqueue.
+ */
+const NO_REVIEWED_OPERATIONS = {
+  group: ['@eim/listings', '@eim/listings/*'],
+  message:
+    'Reviewed listing operations are confirmed by a person, never scheduled. Section 3 excludes automatic publication and recurring price synchronization from version 1.',
+};
+
 const restrict = (patterns) => ({
   'no-restricted-imports': ['error', { patterns }],
 });
@@ -200,13 +220,21 @@ export default tseslint.config(
     ]),
   },
 
-  // The worker never calls the web tier over loopback HTTP (D-049).
+  // The worker never calls the web tier over loopback HTTP (D-049), and never
+  // carries out an operation a person was supposed to confirm.
   {
     files: ['apps/worker/**/*.ts'],
     rules: restrict([
       { group: ['next', 'next/*'], message: 'The worker must not import the web framework.' },
       { group: ['react', 'react-dom'], message: 'The worker has no UI.' },
+      NO_REVIEWED_OPERATIONS,
     ]),
+  },
+
+  // The automatic synchronization tier, for the same reason.
+  {
+    files: ['packages/sync/**/*.ts', 'packages/jobs/**/*.ts'],
+    rules: restrict([NO_REVIEWED_OPERATIONS]),
   },
 
   // Web application: React, hooks, and accessibility rules.
