@@ -11,6 +11,14 @@ export {
 } from './availability';
 
 export {
+  planAllocation,
+  type AllocationComponent,
+  type AllocationInput,
+  type AllocationPlan,
+  type AllocationTake,
+} from './allocation';
+
+export {
   effectiveSafetyStock,
   safetyStockSource,
   type SafetyStockLevels,

@@ -145,4 +145,23 @@ export {
   type RecipeSummary,
 } from './kits';
 
+export {
+  fulfillReservation,
+  openReservationsForItem,
+  previewModeSwitch,
+  readReservation,
+  releaseReservation,
+  reserve,
+  switchConsumptionMode,
+  type FulfillResult,
+  type ModeSwitchPreview,
+  type ModeSwitchResult,
+  type ReleaseResult,
+  type ReservationDatabase,
+  type ReservationReader,
+  type ReservationView,
+  type ReserveInput,
+  type ReserveResult,
+} from './reservations';
+
 export { isCheckViolation, isUniqueViolation } from './errors';

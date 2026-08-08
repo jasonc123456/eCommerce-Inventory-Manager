@@ -49,3 +49,4 @@ export * from './schema/connections';
 export * from './schema/provider-mirror';
 export * from './schema/mappings';
 export * from './schema/kits';
+export * from './schema/reservations';
