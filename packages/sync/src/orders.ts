@@ -7,6 +7,7 @@ import {
   type LineTreatment,
 } from '@eim/db';
 import { reserve } from '@eim/inventory';
+import type { ProviderOrder, ProviderOrderLine } from '@eim/providers';
 import { and, eq, inArray } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 
@@ -38,34 +39,21 @@ import { refreshTargetsForItem } from './targets';
  *   affected channels, and never cancel a customer's order automatically.
  */
 
-export interface NormalizedOrderLine {
-  readonly externalLineId: string;
-  /** The channel entity sold, as the provider names it. */
-  readonly externalItemId: string;
-  readonly variationId?: string;
-  readonly sku?: string;
-  readonly title?: string;
-  readonly quantity: number;
-  readonly cancelledQuantity?: number;
-  readonly shippedQuantity?: number;
-  readonly refundedQuantity?: number;
-}
-
-export interface NormalizedOrder {
-  readonly externalOrderId: string;
-  /** The provider's own word for the state, kept for the timeline. */
-  readonly providerStatus?: string;
-  readonly demandState: DemandState;
-  readonly placedAt?: Date;
-  readonly providerRevision?: string;
-  /** Monotonic per order where the provider supplies one. */
-  readonly providerSequence?: number;
-  readonly currency?: string;
-  readonly totalAmount?: string;
-  /** A pseudonymous handle. Never a name or an address. */
-  readonly buyerReference?: string;
-  readonly lines: readonly NormalizedOrderLine[];
-}
+/**
+ * An order as an adapter reports it.
+ *
+ * Defined in `@eim/providers` rather than here, because deciding that
+ * WooCommerce's `processing` commits demand and its `pending` does not is
+ * knowledge about one provider, and the whole point of the adapter boundary is
+ * that such knowledge stays behind it. The pipeline receives a vocabulary it
+ * already understands.
+ *
+ * The alias is kept because `demandState` must remain assignable to the
+ * database's column type: if the two vocabularies ever drift, this line stops
+ * compiling rather than storing a state nothing can read.
+ */
+export type NormalizedOrder = ProviderOrder & { readonly demandState: DemandState };
+export type NormalizedOrderLine = ProviderOrderLine;
 
 export interface LineOutcome {
   readonly externalLineId: string;

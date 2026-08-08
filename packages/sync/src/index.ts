@@ -22,6 +22,7 @@ export {
   pruneProcessedEvents,
   type EventClaim,
   type EventIdentity,
+  type EventSource,
 } from './events';
 
 export {
@@ -52,3 +53,15 @@ export {
   handleChannelWrite,
   type DispatchDependencies,
 } from './dispatch';
+
+export { toJobFailure } from './failures';
+
+export {
+  ORDER_POLL_JOB,
+  ORDER_STREAM,
+  ORDER_SYNC_JOB,
+  POLL_OVERLAP_MS,
+  handleOrderPoll,
+  handleOrderSync,
+  requestOrderSync,
+} from './pipeline';

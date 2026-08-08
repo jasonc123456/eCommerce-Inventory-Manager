@@ -21,11 +21,14 @@ import { sql } from 'drizzle-orm';
  * the second. Section 12 permits it only where no event id exists.
  */
 
+/** Where a signal came from. Recorded for the timeline, never for deduplication. */
+export type EventSource = 'webhook' | 'poll' | 'verification' | 'manual' | 'reconciliation';
+
 export interface EventIdentity {
   readonly connectionId: string;
   readonly businessId?: string | null;
   readonly provider: string;
-  readonly source: 'webhook' | 'poll' | 'verification' | 'manual' | 'reconciliation';
+  readonly source: EventSource;
   readonly eventType: string;
   readonly resourceType?: string;
   readonly resourceId?: string;

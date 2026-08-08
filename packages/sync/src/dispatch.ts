@@ -3,6 +3,8 @@ import { resolveWriteTarget } from '@eim/inventory';
 import { JobPriority, enqueue, type ClaimedJob, type JobResult } from '@eim/jobs';
 import type { ChannelAdapterFactory, ProviderFailure } from '@eim/providers';
 import { describeFailure } from '@eim/providers';
+
+import { toJobFailure } from './failures';
 import { sql } from 'drizzle-orm';
 
 import {
@@ -312,54 +314,6 @@ async function failWrite(
   }
 
   return toJobFailure(input.failure);
-}
-
-/**
- * Translates a provider outcome into what the queue should do about it.
- *
- * Exhaustive on purpose: a new provider outcome added without a decision here
- * becomes a compile error rather than silently inheriting "retry forever",
- * which for a financially consequential write is the worst default available.
- */
-function toJobFailure(failure: ProviderFailure): JobResult {
-  switch (failure.status) {
-    case 'rate_limited':
-      return {
-        status: 'failed',
-        failureKind: 'rate_limited',
-        detail: describeFailure(failure),
-        retryable: true,
-        retryAfterMs: failure.retryAfterMs,
-      };
-
-    case 'unavailable':
-      return {
-        status: 'failed',
-        failureKind: 'unavailable',
-        detail: describeFailure(failure),
-        retryable: true,
-      };
-
-    case 'conflict':
-      // Retryable, but only because the next attempt recomputes from a fresh
-      // target. Repeating this exact body would race the same way again.
-      return {
-        status: 'failed',
-        failureKind: 'conflict',
-        detail: describeFailure(failure),
-        retryable: true,
-      };
-
-    case 'unauthorized':
-    case 'not_found':
-    case 'rejected':
-      return {
-        status: 'failed',
-        failureKind: failure.status,
-        detail: describeFailure(failure),
-        retryable: false,
-      };
-  }
 }
 
 function whyNotWritable(result: Awaited<ReturnType<typeof resolveWriteTarget>>): string {

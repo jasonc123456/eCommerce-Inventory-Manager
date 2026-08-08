@@ -4,6 +4,8 @@ import type {
   ChannelEntityRef,
   InboundWebhook,
   Page,
+  ProviderOrder,
+  ProviderOrderRef,
   QuantityObservation,
   QuantityWrite,
   VerifiedWebhook,
@@ -33,6 +35,8 @@ export interface FakeAdapterOptions {
   readonly initialQuantities?: ReadonlyMap<string, number>;
   /** Entities the fake reports from `listEntities`. */
   readonly entities?: readonly ChannelEntityRef[];
+  /** Orders the fake will hand back, keyed by external order id. */
+  readonly orders?: ReadonlyMap<string, ProviderOrder>;
   /** Page size for `listEntities`, so pagination itself can be exercised. */
   readonly pageSize?: number;
 }
@@ -73,6 +77,7 @@ export class FakeChannelAdapter implements ChannelAdapter {
   private readonly entities: readonly ChannelEntityRef[];
   private readonly pageSize: number;
   private readonly backorders = new Set<string>();
+  private readonly orders = new Map<string, ProviderOrder>();
 
   /**
    * Failures to return instead of doing the work, one per call, consumed in
@@ -88,6 +93,10 @@ export class FakeChannelAdapter implements ChannelAdapter {
     }
     this.entities = options.entities ?? [];
     this.pageSize = options.pageSize ?? 50;
+
+    for (const [id, order] of options.orders ?? []) {
+      this.orders.set(id, order);
+    }
 
     for (const [key, quantity] of options.initialQuantities ?? []) {
       this.quantities.set(key, quantity);
@@ -152,6 +161,51 @@ export class FakeChannelAdapter implements ChannelAdapter {
         ...(next < this.entities.length ? { nextCursor: String(next) } : {}),
       },
     });
+  }
+
+  /** Adds or replaces an order, as a channel does when a customer buys. */
+  public setOrder(order: ProviderOrder): this {
+    this.orders.set(order.externalOrderId, order);
+    return this;
+  }
+
+  public fetchOrder(externalOrderId: string): Promise<ProviderResult<ProviderOrder>> {
+    this.calls.push('fetchOrder');
+    const failure = this.queuedFailures.shift();
+    if (failure !== undefined) {
+      return Promise.resolve(failure);
+    }
+
+    const order = this.orders.get(externalOrderId);
+
+    return Promise.resolve(
+      order === undefined
+        ? { status: 'not_found', message: `no order ${externalOrderId}` }
+        : { status: 'success', value: order },
+    );
+  }
+
+  public listChangedOrders(input: {
+    readonly since: Date;
+    readonly cursor?: string;
+  }): Promise<ProviderResult<Page<ProviderOrderRef>>> {
+    this.calls.push('listChangedOrders');
+    const failure = this.queuedFailures.shift();
+    if (failure !== undefined) {
+      return Promise.resolve(failure);
+    }
+
+    // Deliberately inclusive of the boundary. An adapter should err towards
+    // returning too much: a duplicate costs one deduplicated event, a miss
+    // costs a sale nobody accounted for.
+    const items = [...this.orders.values()]
+      .filter((order) => order.placedAt === undefined || order.placedAt >= input.since)
+      .map((order) => ({
+        externalOrderId: order.externalOrderId,
+        ...(order.placedAt === undefined ? {} : { updatedAt: order.placedAt }),
+      }));
+
+    return Promise.resolve({ status: 'success', value: { items } });
   }
 
   public readQuantities(

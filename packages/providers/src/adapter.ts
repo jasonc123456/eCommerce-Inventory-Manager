@@ -133,6 +133,64 @@ export interface VerifiedWebhook {
 }
 
 /**
+ * What an order means for inventory, in this application's vocabulary.
+ *
+ * The adapter decides this, not the pipeline. Only the adapter knows that
+ * WooCommerce's `processing` commits demand while `pending` does not, or which
+ * of eBay's fulfilment states count as shipped — and putting that knowledge
+ * behind the boundary is the entire reason the boundary exists.
+ *
+ *   awaiting   nothing is committed: a cart, an unpaid order
+ *   committed  a qualifying order; mapped lines reserve or consume
+ *   fulfilled  shipped or otherwise handed over
+ *   cancelled  ended before shipment
+ *   refunded   money returned, which says nothing about the goods (section 11)
+ */
+export type OrderDemandState = 'awaiting' | 'committed' | 'fulfilled' | 'cancelled' | 'refunded';
+
+export interface ProviderOrderLine {
+  readonly externalLineId: string;
+  /** The channel entity sold, as the provider names it. */
+  readonly externalItemId: string;
+  readonly variationId?: string;
+  readonly sku?: string;
+  readonly title?: string;
+  readonly quantity: number;
+  readonly cancelledQuantity?: number;
+  readonly shippedQuantity?: number;
+  readonly refundedQuantity?: number;
+}
+
+export interface ProviderOrder {
+  readonly externalOrderId: string;
+  /** The provider's own word for the state, kept verbatim for the timeline. */
+  readonly providerStatus?: string;
+  readonly demandState: OrderDemandState;
+  readonly placedAt?: Date;
+  readonly providerRevision?: string;
+  /**
+   * Monotonic per order where the provider supplies one. Section 12 gives this
+   * precedence over arrival order, so an adapter that can supply it should.
+   */
+  readonly providerSequence?: number;
+  readonly currency?: string;
+  readonly totalAmount?: string;
+  /**
+   * A pseudonymous handle for the buyer. Never a name, an address, or an email:
+   * section 13's erasure obligations are much simpler when buyer detail was
+   * never copied out of the provider in the first place.
+   */
+  readonly buyerReference?: string;
+  readonly lines: readonly ProviderOrderLine[];
+}
+
+/** Enough to go and fetch an order that has changed. */
+export interface ProviderOrderRef {
+  readonly externalOrderId: string;
+  readonly updatedAt?: Date;
+}
+
+/**
  * The operations every channel adapter provides.
  *
  * Deliberately small. Everything a provider offers beyond this is either
@@ -165,6 +223,28 @@ export interface ChannelAdapter {
   writeQuantities(
     writes: readonly QuantityWrite[],
   ): Promise<ProviderResult<readonly ProviderResult<WriteAcknowledgement>[]>>;
+
+  /**
+   * Fetches one order as the provider currently holds it.
+   *
+   * Section 15 is emphatic that a webhook is "a signal that state may have
+   * changed, not the final inventory truth", and requires fetching the current
+   * authoritative state before deciding a mutation. So the pipeline never
+   * commits inventory from a payload; it commits from this.
+   */
+  fetchOrder(externalOrderId: string): Promise<ProviderResult<ProviderOrder>>;
+
+  /**
+   * Lists orders changed since a watermark, for incremental polling.
+   *
+   * `since` is applied with the caller's overlap already subtracted. An adapter
+   * should err towards returning too much: a duplicate is deduplicated for free
+   * by the pipeline, and a missed order is a sale nobody accounted for.
+   */
+  listChangedOrders(input: {
+    readonly since: Date;
+    readonly cursor?: string;
+  }): Promise<ProviderResult<Page<ProviderOrderRef>>>;
 
   /**
    * Verifies and normalizes an inbound webhook.
