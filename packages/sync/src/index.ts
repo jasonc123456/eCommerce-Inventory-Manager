@@ -90,3 +90,13 @@ export {
   type SetIntervalResult,
   type SyncSettings,
 } from './schedule';
+
+export {
+  openConflict,
+  reconcile,
+  resolveConflict,
+  type FindingSummary,
+  type ReconcileInput,
+  type ReconcileResult,
+  type ResolveConflictResult,
+} from './reconcile';

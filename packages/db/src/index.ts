@@ -55,3 +55,4 @@ export * from './schema/sync';
 export * from './schema/orders';
 export * from './schema/restocks';
 export * from './schema/cadence';
+export * from './schema/reconciliation';
