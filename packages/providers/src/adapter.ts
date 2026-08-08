@@ -251,6 +251,60 @@ export interface ListingOperations {
 
   /** Writes one confirmed price. Never called except from a confirmation. */
   writePrice?(input: PriceWrite): Promise<ProviderResult<PriceAcknowledgement>>;
+
+  /**
+   * Whether a listing is live, hidden at zero, or over.
+   *
+   * The distinction is the whole of section 6's restock rule. A listing hidden
+   * by eBay's out-of-stock control is still a listing and can be returned to
+   * sale; an ended one is not, and bringing it back is a relisting decision with
+   * its own fees and its own duration. Nothing but the provider can tell the two
+   * apart, so nothing but the adapter is asked.
+   */
+  readListingState?(entity: ChannelEntityRef): Promise<ProviderResult<ListingState>>;
+
+  /**
+   * Returns an eligible out-of-stock listing to sale at a confirmed quantity.
+   *
+   * Section 6: "confirmed positive stock can return eligible listing to sale."
+   * Separate from an ordinary quantity write because it changes what the public
+   * can see rather than only what it says, which is why it carries a publication
+   * permission and a person's confirmation instead of arriving from a sweep.
+   */
+  restockToLive?(input: RestockToLiveInput): Promise<ProviderResult<RestockToLiveResult>>;
+}
+
+export type ListingLifecycleState = 'active' | 'out_of_stock' | 'ended';
+
+export interface ListingState {
+  readonly entity: ChannelEntityRef;
+  readonly state: ListingLifecycleState;
+  /**
+   * Whether the seller has eBay's out-of-stock control enabled.
+   *
+   * Without it, hitting zero ends the listing rather than hiding it, so there is
+   * nothing to return to sale. Section 13's operator checklist asks for it to be
+   * enabled; this reports whether it actually is.
+   */
+  readonly outOfStockControlEnabled: boolean;
+  readonly quantity: number;
+  readonly version?: string;
+  readonly observedAt?: Date;
+}
+
+export interface RestockToLiveInput {
+  readonly entity: ChannelEntityRef;
+  /** The confirmed positive quantity to return to sale with. */
+  readonly quantity: number;
+  readonly expectedVersion?: string;
+  readonly idempotencyKey: string;
+}
+
+export interface RestockToLiveResult {
+  readonly entity: ChannelEntityRef;
+  readonly state: ListingLifecycleState;
+  readonly quantity: number;
+  readonly version?: string;
 }
 
 export interface PriceObservation {

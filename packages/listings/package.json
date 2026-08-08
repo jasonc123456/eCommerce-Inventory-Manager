@@ -22,6 +22,7 @@
     "drizzle-orm": "catalog:"
   },
   "devDependencies": {
+    "@eim/inventory": "workspace:*",
     "@eim/testing": "workspace:*",
     "@types/node": "catalog:",
     "fast-check": "catalog:",

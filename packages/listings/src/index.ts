@@ -79,6 +79,24 @@ export {
 } from './prices';
 
 export {
+  assessRestockEligibility,
+  mayRestock,
+  type RestockEligibility,
+  type RestockSubject,
+  type RestockVerdict,
+} from './restock-eligibility';
+
+export {
+  RestockRefused,
+  executeRestockToLive,
+  proposeRestockToLive,
+  type AppliedRestock,
+  type ExecuteRestockInput,
+  type ProposeRestockInput,
+  type ProposedRestock,
+} from './restock';
+
+export {
   ReviewedOperationError,
   beginExecution,
   cancelOperation,

@@ -6,7 +6,9 @@ import type {
   DraftRef,
   FeeLine,
   InboundWebhook,
+  ListingLifecycleState,
   ListingOperations,
+  ListingState,
   Page,
   PreviewPublicationInput,
   PriceAcknowledgement,
@@ -20,6 +22,8 @@ import type {
   PublishedListing,
   QuantityObservation,
   QuantityWrite,
+  RestockToLiveInput,
+  RestockToLiveResult,
   VerifiedWebhook,
   WriteAcknowledgement,
 } from '../adapter';
@@ -66,6 +70,10 @@ export interface FakeAdapterOptions {
   readonly initialPrices?: ReadonlyMap<string, { amount: string; currency: string }>;
   /** Entity keys currently running a sale price, and what it is. */
   readonly salePrices?: ReadonlyMap<string, string>;
+  /** Lifecycle state per entity key. Absent entries are `active`. */
+  readonly listingStates?: ReadonlyMap<string, ListingLifecycleState>;
+  /** Whether the seller has eBay's out-of-stock control enabled. */
+  readonly outOfStockControlEnabled?: boolean;
 }
 
 /** A price this fake was asked to write. */
@@ -144,6 +152,8 @@ export class FakeChannelAdapter implements ChannelAdapter {
   private nextDraftNumber = 1;
   private readonly prices = new Map<string, { amount: string; currency: string }>();
   private readonly salePrices = new Map<string, string>();
+  private readonly listingStates = new Map<string, ListingLifecycleState>();
+  private readonly outOfStockControlEnabled: boolean;
 
   public constructor(options: FakeAdapterOptions = {}) {
     this.capabilities = { ...DEFAULT_CAPABILITIES, ...options.capabilities };
@@ -175,6 +185,10 @@ export class FakeChannelAdapter implements ChannelAdapter {
     for (const [key, amount] of options.salePrices ?? []) {
       this.salePrices.set(key, amount);
     }
+    for (const [key, state] of options.listingStates ?? []) {
+      this.listingStates.set(key, state);
+    }
+    this.outOfStockControlEnabled = options.outOfStockControlEnabled ?? true;
 
     if (options.listingOperations === true) {
       this.listingOperations = {
@@ -184,8 +198,90 @@ export class FakeChannelAdapter implements ChannelAdapter {
         readPrice: (entity) => this.readPrice(entity),
         previewPriceChange: (input) => this.previewPriceChange(input),
         writePrice: (input) => this.writePrice(input),
+        readListingState: (entity) => this.readListingState(entity),
+        restockToLive: (input) => this.restockToLive(input),
       };
     }
+  }
+
+  private readListingState(entity: ChannelEntityRef): Promise<ProviderResult<ListingState>> {
+    this.calls.push('readListingState');
+    const failure = this.queuedFailures.shift();
+    if (failure !== undefined) {
+      return Promise.resolve(failure);
+    }
+
+    const key = entityKey(entity);
+    if (!this.quantities.has(key)) {
+      return Promise.resolve({ status: 'not_found', message: `no entity ${key}` });
+    }
+
+    return Promise.resolve({
+      status: 'success',
+      value: {
+        entity,
+        state: this.listingStates.get(key) ?? 'active',
+        outOfStockControlEnabled: this.outOfStockControlEnabled,
+        quantity: this.quantities.get(key) ?? 0,
+        version: String(this.versions.get(key) ?? 1),
+        observedAt: new Date(0),
+      },
+    });
+  }
+
+  private restockToLive(input: RestockToLiveInput): Promise<ProviderResult<RestockToLiveResult>> {
+    this.calls.push('restockToLive');
+    const failure = this.queuedFailures.shift();
+    if (failure !== undefined) {
+      return Promise.resolve(failure);
+    }
+
+    const key = entityKey(input.entity);
+    if (!this.quantities.has(key)) {
+      return Promise.resolve({ status: 'not_found', message: `no entity ${key}` });
+    }
+
+    // An ended listing is not a listing to bring back. A real provider refuses
+    // this too, and discovering it here rather than after a confirmation is why
+    // the eligibility check exists on our side as well.
+    if (this.listingStates.get(key) === 'ended') {
+      return Promise.resolve({
+        status: 'rejected',
+        message: 'this listing has ended and must be relisted rather than restocked',
+        code: 'LISTING_ENDED',
+      });
+    }
+
+    if (input.quantity <= 0) {
+      return Promise.resolve({
+        status: 'rejected',
+        message: 'a listing cannot be returned to sale with no stock',
+        code: 'INVALID_QUANTITY',
+      });
+    }
+
+    const currentVersion = String(this.versions.get(key) ?? 1);
+    if (input.expectedVersion !== undefined && input.expectedVersion !== currentVersion) {
+      return Promise.resolve({
+        status: 'conflict',
+        message: `entity ${key} changed since it was read`,
+        currentVersion,
+      });
+    }
+
+    this.quantities.set(key, input.quantity);
+    this.listingStates.set(key, 'active');
+    this.versions.set(key, Number(currentVersion) + 1);
+
+    return Promise.resolve({
+      status: 'success',
+      value: {
+        entity: input.entity,
+        state: 'active',
+        quantity: input.quantity,
+        version: String(this.versions.get(key) ?? 1),
+      },
+    });
   }
 
   /** Simulates a price edited on the channel by somebody else. */

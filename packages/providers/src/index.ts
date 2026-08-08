@@ -7,7 +7,9 @@ export {
   type DraftRef,
   type FeeLine,
   type InboundWebhook,
+  type ListingLifecycleState,
   type ListingOperations,
+  type ListingState,
   type OrderDemandState,
   type Page,
   type PreviewPublicationInput,
@@ -23,6 +25,8 @@ export {
   type ProviderOrderRef,
   type QuantityObservation,
   type QuantityWrite,
+  type RestockToLiveInput,
+  type RestockToLiveResult,
   type VerifiedWebhook,
   type WriteAcknowledgement,
 } from './adapter';

@@ -103,6 +103,10 @@ export default defineConfig({
         // strings is undone by one comparison screen that parses them into
         // doubles, so this is measured like the rest of the safety domain.
         'packages/listings/src/money.ts',
+        // Which listings may be returned to sale. The refusal that matters —
+        // an ended listing is never relisted by a restock — is a branch, so an
+        // unmeasured one here is a listing recreated that nobody asked for.
+        'packages/listings/src/restock-eligibility.ts',
         // The web tier's security-critical pure helpers. The screens and server
         // actions are not measured here: they need a browser and a session, and
         // the integration and Compose tiers are where they are exercised.
@@ -266,6 +270,12 @@ export default defineConfig({
           statements: 90,
         },
         'packages/listings/src/money.ts': {
+          branches: 90,
+          functions: 90,
+          lines: 90,
+          statements: 90,
+        },
+        'packages/listings/src/restock-eligibility.ts': {
           branches: 90,
           functions: 90,
           lines: 90,
