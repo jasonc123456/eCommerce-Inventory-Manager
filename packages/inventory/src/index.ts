@@ -51,4 +51,37 @@ export {
   type UpdateItemResult,
 } from './items';
 
+export {
+  lockBalances,
+  lockOrder,
+  postMovements,
+  readReversals,
+  readTimeline,
+  transactionally,
+  type BalanceKey,
+  type LedgerReader,
+  type LedgerTransaction,
+  type Movement,
+  type PostingInput,
+  type PostingResult,
+  type ResultingBalance,
+  type Shortfall,
+} from './ledger';
+
+export {
+  applyAdjustment,
+  previewAdjustment,
+  reverseEntry,
+  transferStock,
+  type AdjustmentDatabase,
+  type AdjustmentInput,
+  type AdjustmentPreview,
+  type AdjustmentResult,
+  type PreviewResult,
+  type QuantityChange,
+  type ReversalResult,
+  type TransferInput,
+  type TransferResult,
+} from './adjustments';
+
 export { isCheckViolation, isUniqueViolation } from './errors';
