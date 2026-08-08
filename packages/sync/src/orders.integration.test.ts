@@ -1,4 +1,11 @@
-import { businesses, connections, providerItems, users } from '@eim/db';
+import {
+  businesses,
+  connections,
+  mirroredOrders,
+  providerItems,
+  reviewedOperations,
+  users,
+} from '@eim/db';
 import {
   activateMapping,
   approveMapping,
@@ -390,6 +397,89 @@ describe('ingestOrder', () => {
     const committed = results.filter((result) => result.outcome === 'ingested' && result.committed);
 
     expect(committed).toHaveLength(1);
+    expect(await reservedOf(fixture)).toBe(3);
+  });
+});
+
+describe('a copied order', () => {
+  /**
+   * Section 11's mirror rule, from the pipeline's side.
+   *
+   * A copy of an eBay order sitting in a WooCommerce store arrives here like any
+   * other order: the store announces it, the pipeline fetches it, and its lines
+   * map to the canonical items the eBay sale already consumed. The guard is a
+   * row in `mirrored_orders`, which this test writes directly — the pipeline's
+   * guarantee is "if the table says so, commit nothing", and it must hold
+   * regardless of who wrote the row.
+   */
+  async function markAsMirror(fixture: Fixture, externalOrderId: string): Promise<void> {
+    const [operation] = await harness.db
+      .insert(reviewedOperations)
+      .values({
+        businessId: fixture.businessId,
+        kind: 'order_copy',
+        subjectKey: `order:${externalOrderId}`,
+        requiredPermission: 'copy_ebay_order_to_woocommerce',
+        preview: {},
+        previewFingerprint: 'fingerprint',
+        sourceObservedAt: new Date(),
+        sourceMaxAgeMs: 900_000,
+        expiresAt: new Date(Date.now() + 3_600_000),
+        idempotencyKey: `mirror-${externalOrderId}`,
+      })
+      .returning({ id: reviewedOperations.id });
+
+    await harness.db.insert(mirroredOrders).values({
+      businessId: fixture.businessId,
+      sourceConnectionId: fixture.connectionId,
+      sourceExternalOrderId: 'EBAY-9000',
+      destinationConnectionId: fixture.connectionId,
+      destinationExternalOrderId: externalOrderId,
+      operationId: operation!.id,
+      suppressionTechnique: 'mark_order_stock_reduced',
+      suppressionConfirmed: true,
+    });
+  }
+
+  it('is recorded in full and commits nothing', async () => {
+    // The customer bought one unit. The ledger committed it when eBay said so,
+    // and this copy must not commit it again.
+    const fixture = await seed();
+    await markAsMirror(fixture, 'wc-1001');
+
+    const result = await ingest(fixture, orderOf(fixture), 'evt-mirror');
+
+    expect(result).toMatchObject({ outcome: 'ingested', committed: false });
+    expect(await reservedOf(fixture)).toBe(0);
+    // Still imported, with its lines, exactly as any other order would be.
+    if (result.outcome === 'ingested') {
+      expect(result.lines).toHaveLength(1);
+    }
+  });
+
+  it('says which order it is a copy of, rather than falling silent', async () => {
+    const fixture = await seed();
+    await markAsMirror(fixture, 'wc-1001');
+
+    const result = await ingest(fixture, orderOf(fixture), 'evt-mirror-2');
+
+    expect(result.outcome).toBe('ingested');
+    if (result.outcome === 'ingested') {
+      expect(result.mirrorOf).toBe('EBAY-9000');
+    }
+  });
+
+  it('leaves an ordinary order in the same store alone', async () => {
+    const fixture = await seed();
+    await markAsMirror(fixture, 'wc-1001');
+
+    const result = await ingest(
+      fixture,
+      orderOf(fixture, { externalOrderId: 'wc-1002' }),
+      'evt-ordinary',
+    );
+
+    expect(result).toMatchObject({ outcome: 'ingested', committed: true });
     expect(await reservedOf(fixture)).toBe(3);
   });
 });

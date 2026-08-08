@@ -272,6 +272,90 @@ export interface ListingOperations {
    * permission and a person's confirmation instead of arriving from a sweep.
    */
   restockToLive?(input: RestockToLiveInput): Promise<ProviderResult<RestockToLiveResult>>;
+
+  /**
+   * Writes a copy of an order that happened on another channel.
+   *
+   * Section 11's optional manual copy, and the only place this application
+   * creates an order rather than observing one. The copy is a record, not a
+   * sale: the customer already bought the goods somewhere else, and the ledger
+   * already knows.
+   *
+   * `suppressStockReduction` is not advice. A WooCommerce order created in a
+   * qualifying status runs the store's own stock reduction, on top of the
+   * projection the original sale already wrote, so an adapter that cannot carry
+   * out the named technique must fail rather than create the order — section 11
+   * would rather the action be unavailable than ship "a known double
+   * decrement".
+   */
+  createMirroredOrder?(input: MirroredOrderInput): Promise<ProviderResult<MirroredOrderResult>>;
+}
+
+/** A person's name and address, exactly as the source channel gave it. */
+export interface PostalContact {
+  readonly firstName?: string;
+  readonly lastName?: string;
+  readonly company?: string;
+  readonly line1?: string;
+  readonly line2?: string;
+  readonly city?: string;
+  readonly region?: string;
+  readonly postcode?: string;
+  readonly country?: string;
+  readonly email?: string;
+  readonly phone?: string;
+}
+
+export interface MirroredOrderLine {
+  readonly sku?: string;
+  readonly name: string;
+  readonly quantity: number;
+  /** Decimal strings throughout, as quoted by the source channel. */
+  readonly unitAmount: string;
+  readonly totalAmount: string;
+  readonly taxAmount?: string;
+  /** The source channel's own line identifier, carried into the copy. */
+  readonly sourceLineId: string;
+}
+
+export interface MirroredOrderInput {
+  /** The order being copied, and where it happened. */
+  readonly sourceOrderId: string;
+  readonly sourceProvider: ProviderName;
+  /**
+   * Section 11: "unshipped paid orders use WooCommerce `processing`; already
+   * fulfilled orders use `completed`."
+   */
+  readonly status: 'processing' | 'completed';
+  readonly currency: string;
+  readonly lines: readonly MirroredOrderLine[];
+  readonly shippingAmount?: string;
+  readonly taxAmount?: string;
+  readonly totalAmount: string;
+  readonly billing?: PostalContact;
+  readonly shipping?: PostalContact;
+  /** Section 11: an `eBay` label, without invoking a payment gateway. */
+  readonly paymentMethodTitle: string;
+  /** The technique this store's version supports. Never empty. */
+  readonly suppressStockReduction: string;
+  /** Section 11: customer email is disabled by default. */
+  readonly suppressCustomerEmail: boolean;
+  /** Integration metadata written onto the order, naming its origin. */
+  readonly metadata: Readonly<Record<string, string>>;
+  readonly idempotencyKey: string;
+}
+
+export interface MirroredOrderResult {
+  readonly externalOrderId: string;
+  readonly url?: string;
+  /**
+   * Whether the store's own stock reduction was actually suppressed.
+   *
+   * Reported rather than assumed. The caller treats `false` as a failure and
+   * refuses to keep the order, because an unsuppressed copy has already
+   * decremented a shop's numbers for a sale that was counted elsewhere.
+   */
+  readonly stockReductionSuppressed: boolean;
 }
 
 export type ListingLifecycleState = 'active' | 'out_of_stock' | 'ended';

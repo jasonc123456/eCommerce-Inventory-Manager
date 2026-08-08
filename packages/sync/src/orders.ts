@@ -1,6 +1,7 @@
 import {
   channelMappingLocations,
   channelMappings,
+  mirroredOrders,
   providerItems,
   type Database,
   type DemandState,
@@ -70,6 +71,14 @@ export type IngestResult =
       readonly outcome: 'ingested';
       readonly orderId: string;
       readonly committed: boolean;
+      /**
+       * The order this one is a copy of, when it is one.
+       *
+       * Section 11's mirror rule: a copied order is recorded in full and moves
+       * no stock, because the sale it represents was already committed on the
+       * channel it actually happened on.
+       */
+      readonly mirrorOf?: string;
       readonly lines: readonly LineOutcome[];
       /** Lines that moved no stock and need somebody's attention. */
       readonly needsAttention: readonly LineOutcome[];
@@ -119,9 +128,22 @@ export async function ingestOrder(db: Database, input: IngestInput): Promise<Ing
     order: input.order,
   });
 
+  // Section 11's mirror rule, checked here rather than by the caller.
+  //
+  // A copy of an eBay order sitting in a WooCommerce store arrives through this
+  // function like any other order: the store announces it, the pipeline fetches
+  // it, and its lines are mapped to the same canonical items the eBay sale
+  // already consumed. Committing again would record two sales for one customer.
+  //
+  // The lookup lives inside the ingest rather than in the pipeline above it
+  // because there is no path to inventory that should be able to skip it, and a
+  // guard the caller has to remember is a guard one caller will not.
+  const mirrorOf = await mirrorSourceOf(db, input.connectionId, input.order.externalOrderId);
+
   // Section 11 commits once, on the first qualifying transition. A provider
   // that resends "processing" has not sold the order again.
-  const shouldCommit = input.order.demandState === 'committed' && !stored.alreadyCommitted;
+  const shouldCommit =
+    input.order.demandState === 'committed' && !stored.alreadyCommitted && mirrorOf === null;
 
   const lines = shouldCommit
     ? await treatLines(db, { ...input, orderId: stored.orderId })
@@ -131,6 +153,9 @@ export async function ingestOrder(db: Database, input: IngestInput): Promise<Ing
     outcome: 'ingested',
     orderId: stored.orderId,
     committed: shouldCommit,
+    // Carried into the result so an operator reading why an order moved no
+    // stock finds the answer rather than a silence.
+    ...(mirrorOf === null ? {} : { mirrorOf }),
     lines,
     needsAttention: lines.filter(
       (line) => line.treatment === 'unmapped' || line.treatment === 'ineligible',
@@ -141,6 +166,33 @@ export async function ingestOrder(db: Database, input: IngestInput): Promise<Ing
   await completeEvent(db, claim.eventId, result);
 
   return result;
+}
+
+/**
+ * The order this one is a copy of, or null.
+ *
+ * Section 11's "cannot create another canonical sale", expressed as a lookup.
+ * Returns the *source* order identifier rather than a boolean so the answer is
+ * useful: an operator asking why a store's order moved no stock gets the eBay
+ * order it belongs to, not the word "no".
+ */
+async function mirrorSourceOf(
+  db: Database,
+  connectionId: string,
+  externalOrderId: string,
+): Promise<string | null> {
+  const rows = await db
+    .select({ sourceExternalOrderId: mirroredOrders.sourceExternalOrderId })
+    .from(mirroredOrders)
+    .where(
+      and(
+        eq(mirroredOrders.destinationConnectionId, connectionId),
+        eq(mirroredOrders.destinationExternalOrderId, externalOrderId),
+      ),
+    )
+    .limit(1);
+
+  return rows[0]?.sourceExternalOrderId ?? null;
 }
 
 /**

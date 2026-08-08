@@ -79,6 +79,24 @@ export {
 } from './prices';
 
 export {
+  OrderCopyRefused,
+  executeOrderCopy,
+  proposeOrderCopy,
+  type CopiedOrder,
+  type ExecuteOrderCopyInput,
+  type OrderCopySubject,
+  type ProposeOrderCopyInput,
+  type ProposedOrderCopy,
+} from './order-copy';
+
+export {
+  SUPPRESSION_TECHNIQUES,
+  assessOrderCopySupport,
+  type OrderCopySupport,
+  type SuppressionTechnique,
+} from './suppression';
+
+export {
   assessRestockEligibility,
   mayRestock,
   type RestockEligibility,

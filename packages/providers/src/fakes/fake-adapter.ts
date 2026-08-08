@@ -9,6 +9,8 @@ import type {
   ListingLifecycleState,
   ListingOperations,
   ListingState,
+  MirroredOrderInput,
+  MirroredOrderResult,
   Page,
   PreviewPublicationInput,
   PriceAcknowledgement,
@@ -74,6 +76,13 @@ export interface FakeAdapterOptions {
   readonly listingStates?: ReadonlyMap<string, ListingLifecycleState>;
   /** Whether the seller has eBay's out-of-stock control enabled. */
   readonly outOfStockControlEnabled?: boolean;
+  /**
+   * Whether this store can actually carry out the named suppression technique.
+   *
+   * Defaults to true. Set false to exercise the case section 11 cares most
+   * about: a store that accepted the order and reduced its own stock anyway.
+   */
+  readonly canSuppressStockReduction?: boolean;
 }
 
 /** A price this fake was asked to write. */
@@ -154,6 +163,11 @@ export class FakeChannelAdapter implements ChannelAdapter {
   private readonly salePrices = new Map<string, string>();
   private readonly listingStates = new Map<string, ListingLifecycleState>();
   private readonly outOfStockControlEnabled: boolean;
+  private readonly canSuppressStockReduction: boolean;
+  private nextMirroredOrderNumber = 1;
+
+  /** Every order copy this fake was asked to write, in order. */
+  public readonly mirroredOrders: MirroredOrderInput[] = [];
 
   public constructor(options: FakeAdapterOptions = {}) {
     this.capabilities = { ...DEFAULT_CAPABILITIES, ...options.capabilities };
@@ -189,6 +203,7 @@ export class FakeChannelAdapter implements ChannelAdapter {
       this.listingStates.set(key, state);
     }
     this.outOfStockControlEnabled = options.outOfStockControlEnabled ?? true;
+    this.canSuppressStockReduction = options.canSuppressStockReduction ?? true;
 
     if (options.listingOperations === true) {
       this.listingOperations = {
@@ -200,8 +215,42 @@ export class FakeChannelAdapter implements ChannelAdapter {
         writePrice: (input) => this.writePrice(input),
         readListingState: (entity) => this.readListingState(entity),
         restockToLive: (input) => this.restockToLive(input),
+        createMirroredOrder: (input) => this.createMirroredOrder(input),
       };
     }
+  }
+
+  private createMirroredOrder(
+    input: MirroredOrderInput,
+  ): Promise<ProviderResult<MirroredOrderResult>> {
+    this.calls.push('createMirroredOrder');
+    const failure = this.queuedFailures.shift();
+    if (failure !== undefined) {
+      return Promise.resolve(failure);
+    }
+
+    const existing = this.mirroredOrders.findIndex(
+      (order) => order.idempotencyKey === input.idempotencyKey,
+    );
+    if (existing !== -1) {
+      return Promise.resolve({
+        status: 'success',
+        value: {
+          externalOrderId: `WC-${String(existing + 1)}`,
+          stockReductionSuppressed: this.canSuppressStockReduction,
+        },
+      });
+    }
+
+    this.mirroredOrders.push(input);
+
+    return Promise.resolve({
+      status: 'success',
+      value: {
+        externalOrderId: `WC-${String(this.nextMirroredOrderNumber++)}`,
+        stockReductionSuppressed: this.canSuppressStockReduction,
+      },
+    });
   }
 
   private readListingState(entity: ChannelEntityRef): Promise<ProviderResult<ListingState>> {

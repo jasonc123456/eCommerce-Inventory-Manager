@@ -119,5 +119,38 @@ export const reviewedOperationRefusals = pgTable(
   (table) => [index('reviewed_operation_refusals_by_operation').on(table.operationId)],
 );
 
+/**
+ * Orders this application created rather than observed.
+ *
+ * `migrations/0022_mirrored_orders.sql` is the source of truth. The order
+ * pipeline reads this table on every ingest, and what it is asking is whether a
+ * sale it is about to commit inventory for is the same sale it already
+ * committed on another channel.
+ */
+export const mirroredOrders = pgTable(
+  'mirrored_orders',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    businessId: uuid('business_id')
+      .notNull()
+      .references(() => businesses.id, { onDelete: 'cascade' }),
+    sourceConnectionId: uuid('source_connection_id').notNull(),
+    sourceExternalOrderId: text('source_external_order_id').notNull(),
+    destinationConnectionId: uuid('destination_connection_id').notNull(),
+    destinationExternalOrderId: text('destination_external_order_id'),
+    operationId: uuid('operation_id')
+      .notNull()
+      .references(() => reviewedOperations.id, { onDelete: 'restrict' }),
+    suppressionTechnique: text('suppression_technique').notNull(),
+    suppressionConfirmed: boolean('suppression_confirmed').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    createdByUserId: uuid('created_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+  },
+  (table) => [index('mirrored_orders_by_business').on(table.businessId, table.createdAt)],
+);
+
 export type ReviewedOperation = typeof reviewedOperations.$inferSelect;
 export type ReviewedOperationRefusal = typeof reviewedOperationRefusals.$inferSelect;
+export type MirroredOrder = typeof mirroredOrders.$inferSelect;
