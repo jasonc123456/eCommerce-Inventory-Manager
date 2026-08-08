@@ -1,6 +1,7 @@
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import pg from 'pg';
 
+import * as alerts from './schema/alerts';
 import * as audit from './schema/audit';
 import * as background from './schema/background';
 import * as cadence from './schema/cadence';
@@ -52,6 +53,7 @@ export const schema = {
   ...restocks,
   ...cadence,
   ...reconciliation,
+  ...alerts,
 };
 export type Schema = typeof schema;
 export type Database = NodePgDatabase<Schema>;

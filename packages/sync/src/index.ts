@@ -100,3 +100,15 @@ export {
   type ReconcileResult,
   type ResolveConflictResult,
 } from './reconcile';
+
+export {
+  acknowledgeAlert,
+  alertConflict,
+  alertJobDeadLettered,
+  alertMappingBlocked,
+  alertOversold,
+  openAlerts,
+  raiseAlert,
+  type RaiseAlertInput,
+  type RaisedAlert,
+} from './alerts';

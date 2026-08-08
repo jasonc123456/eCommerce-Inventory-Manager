@@ -11,6 +11,7 @@ import {
 import { postMovements } from '@eim/inventory';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 
+import { alertConflict } from './alerts';
 import type { DispatchDependencies } from './dispatch';
 import { blockTarget, enqueueChannelWrite, readTarget, recordObservation } from './targets';
 
@@ -278,7 +279,9 @@ async function examineMapping(
   const overstating = observation.quantity > target.desiredQuantity;
 
   if (!input.dryRun) {
-    await openConflict(db, {
+    const summary = `the channel reports ${String(observation.quantity)} where ${String(target.desiredQuantity)} was expected`;
+
+    const conflictId = await openConflict(db, {
       businessId: input.businessId,
       mappingId: input.mappingId,
       connectionId: input.connectionId,
@@ -286,8 +289,20 @@ async function examineMapping(
       kind: 'quantity_drift',
       expectedQuantity: target.desiredQuantity,
       observedQuantity: observation.quantity,
-      summary: `the channel reports ${String(observation.quantity)} where ${String(target.desiredQuantity)} was expected`,
+      summary,
     });
+
+    if (conflictId !== null) {
+      // Only for a conflict that is actually new. A drift re-detected every
+      // thirty minutes has already been reported, and repeating it is how the
+      // one that matters becomes unfindable.
+      await alertConflict(db, {
+        businessId: input.businessId,
+        conflictId,
+        mappingId: input.mappingId,
+        summary,
+      });
+    }
 
     await blockTarget(
       db,

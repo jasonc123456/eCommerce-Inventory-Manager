@@ -11,6 +11,7 @@ import type { ProviderOrder, ProviderOrderLine } from '@eim/providers';
 import { and, eq, inArray } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 
+import { alertOversold } from './alerts';
 import { claimEvent, completeEvent, type EventIdentity } from './events';
 import { refreshTargetsForItem } from './targets';
 
@@ -354,6 +355,19 @@ async function treatLines(
     );
 
     touched.add(resolved.canonicalItemId);
+
+    if (view.shortage > 0) {
+      // Section 11: notify on an order that could not be filled. Raised here
+      // rather than by a later sweep, because the moment it matters is now —
+      // the channel is about to be told zero and somebody is owed an
+      // explanation before the customer asks for one.
+      await alertOversold(db, {
+        businessId: input.businessId,
+        canonicalItemId: resolved.canonicalItemId,
+        externalOrderId: input.order.externalOrderId,
+        shortage: view.shortage,
+      });
+    }
   }
 
   // Every channel that advertises anything this order touched now owes a new

@@ -4,6 +4,7 @@ import { JobPriority, enqueue, type ClaimedJob, type JobResult } from '@eim/jobs
 import type { ChannelAdapterFactory, ProviderFailure } from '@eim/providers';
 import { describeFailure } from '@eim/providers';
 
+import { alertMappingBlocked } from './alerts';
 import { toJobFailure } from './failures';
 import { sql } from 'drizzle-orm';
 
@@ -103,6 +104,11 @@ export async function handleChannelWrite(
     // retrying will not change that until a human does something. The target
     // is blocked so the next ledger movement does not queue another one.
     await blockTarget(db, mappingId, whyNotWritable(permitted));
+    await alertMappingBlocked(db, {
+      businessId: job.businessId,
+      mappingId,
+      reason: whyNotWritable(permitted),
+    });
 
     return { status: 'superseded', detail: whyNotWritable(permitted) };
   }
