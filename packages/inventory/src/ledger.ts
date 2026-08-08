@@ -32,7 +32,10 @@ import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 export type LedgerReader = Pick<Database, 'select'>;
 
 /** The subset of the database a posting needs. Any transaction satisfies it. */
-export type LedgerTransaction = Pick<Database, 'select' | 'insert' | 'update' | 'execute'>;
+export type LedgerTransaction = Pick<
+  Database,
+  'select' | 'insert' | 'update' | 'delete' | 'execute'
+>;
 
 /** One movement of one item at one location. */
 export interface Movement {

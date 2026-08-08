@@ -84,4 +84,24 @@ export {
   type TransferResult,
 } from './adjustments';
 
+export {
+  approveMapping,
+  archiveMapping,
+  proposeMapping,
+  readLiveMappings,
+  readMapping,
+  readMappingHistory,
+  readMappingsForItem,
+  reviseMapping,
+  type ApproveMappingResult,
+  type ArchiveMappingResult,
+  type MappingDatabase,
+  type MappingReader,
+  type MappingSummary,
+  type ProposeMappingInput,
+  type ProposeMappingResult,
+  type ReviseMappingInput,
+  type ReviseMappingResult,
+} from './mappings';
+
 export { isCheckViolation, isUniqueViolation } from './errors';

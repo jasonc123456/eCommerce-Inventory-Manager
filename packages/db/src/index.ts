@@ -47,3 +47,4 @@ export * from './schema/identity';
 export * from './schema/audit';
 export * from './schema/connections';
 export * from './schema/provider-mirror';
+export * from './schema/mappings';
