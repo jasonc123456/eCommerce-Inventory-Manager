@@ -21,6 +21,7 @@
     "@eim/identity": "workspace:*",
     "@eim/integrations": "workspace:*",
     "@eim/inventory": "workspace:*",
+    "@eim/listings": "workspace:*",
     "@eim/mail": "workspace:*",
     "@eim/observability": "workspace:*",
     "@eim/providers": "workspace:*",
