@@ -53,3 +53,4 @@ export * from './schema/reservations';
 export * from './schema/jobs';
 export * from './schema/sync';
 export * from './schema/orders';
+export * from './schema/restocks';

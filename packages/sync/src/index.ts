@@ -32,3 +32,15 @@ export {
   type NormalizedOrder,
   type NormalizedOrderLine,
 } from './orders';
+
+export {
+  applyCancellation,
+  applyFulfillment,
+  applyRefund,
+  confirmRestock,
+  declineRestock,
+  type ConfirmRestockResult,
+  type LifecycleInput,
+  type LifecycleResult,
+  type LineEffect,
+} from './lifecycle';

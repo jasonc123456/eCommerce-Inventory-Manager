@@ -10,6 +10,7 @@ import * as jobs from './schema/jobs';
 import * as kits from './schema/kits';
 import * as mappings from './schema/mappings';
 import * as reservations from './schema/reservations';
+import * as restocks from './schema/restocks';
 import * as providerMirror from './schema/provider-mirror';
 import * as orders from './schema/orders';
 import * as sync from './schema/sync';
@@ -46,6 +47,7 @@ export const schema = {
   ...jobs,
   ...sync,
   ...orders,
+  ...restocks,
 };
 export type Schema = typeof schema;
 export type Database = NodePgDatabase<Schema>;
