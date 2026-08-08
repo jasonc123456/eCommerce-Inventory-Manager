@@ -26,7 +26,9 @@ afterAll(async () => {
   await harness.drop();
 });
 
-const logger = createLogger({ level: 'silent', component: 'worker' });
+// `error` rather than a silent level: these tests deliberately fail jobs, and a
+// handler that throws should still say so if it ever throws unexpectedly.
+const logger = createLogger({ level: 'error', component: 'worker' });
 
 let counter = 0;
 
