@@ -44,3 +44,11 @@ export {
   type LifecycleResult,
   type LineEffect,
 } from './lifecycle';
+
+export {
+  CHANNEL_VERIFY_JOB,
+  dispatchHandlers,
+  handleChannelVerify,
+  handleChannelWrite,
+  type DispatchDependencies,
+} from './dispatch';
