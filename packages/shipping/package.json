@@ -1,0 +1,32 @@
+{
+  "name": "@eim/shipping",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "description": "Packages, rate comparison, confirmed label purchase, voids, documents, and tracking.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@eim/audit": "workspace:*",
+    "@eim/authz": "workspace:*",
+    "@eim/crypto": "workspace:*",
+    "@eim/db": "workspace:*",
+    "@eim/providers": "workspace:*",
+    "@eim/review": "workspace:*",
+    "drizzle-orm": "catalog:"
+  },
+  "devDependencies": {
+    "@eim/testing": "workspace:*",
+    "@types/node": "catalog:",
+    "fast-check": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
