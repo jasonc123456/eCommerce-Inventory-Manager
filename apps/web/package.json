@@ -27,6 +27,7 @@
     "@eim/providers": "workspace:*",
     "@eim/ratelimit": "workspace:*",
     "@eim/review": "workspace:*",
+    "@eim/shipping": "workspace:*",
     "drizzle-orm": "catalog:",
     "next": "catalog:",
     "react": "catalog:",
