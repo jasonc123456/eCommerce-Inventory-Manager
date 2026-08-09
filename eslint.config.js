@@ -168,6 +168,11 @@ export default tseslint.config(
       // checked against the files that would have to contain it. The paths are
       // derived from this module's own location, never from input.
       'packages/listings/src/acceptance.integration.test.ts',
+      // The M6 exit gate does the same for shipping: section 36 asks it to
+      // prove that no HTTP call exists in the shipping path and that there is
+      // nowhere to store a label document, and both are absences that can only
+      // be checked against the files that would have to contain them.
+      'packages/shipping/src/acceptance.integration.test.ts',
     ],
     rules: {
       'no-restricted-properties': 'off',
