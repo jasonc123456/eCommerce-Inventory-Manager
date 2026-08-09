@@ -210,7 +210,7 @@ describe('proposeDraft', () => {
     await createDraft(fixture);
 
     const events = await readBusinessAuditEvents(harness.db, fixture.businessId, { limit: 50 });
-    expect(events.map((event) => event.action)).toContain('listing.operation.proposed');
+    expect(events.map((event) => event.action)).toContain('review.operation.proposed');
   });
 });
 

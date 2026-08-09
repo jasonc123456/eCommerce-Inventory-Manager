@@ -85,7 +85,7 @@ export async function confirmOperationAction(
 
   if (!outcome.confirmed) {
     await context.audit.record(db, {
-      action: 'listing.operation.refused',
+      action: 'review.operation.refused',
       result: 'denied',
       businessId,
       targetType: 'reviewed_operation',
@@ -97,7 +97,7 @@ export async function confirmOperationAction(
   }
 
   await context.audit.record(db, {
-    action: 'listing.operation.confirmed',
+    action: 'review.operation.confirmed',
     result: 'success',
     businessId,
     targetType: 'reviewed_operation',
@@ -149,7 +149,7 @@ export async function cancelOperationAction(
   }
 
   await context.audit.record(db, {
-    action: 'listing.operation.cancelled',
+    action: 'review.operation.cancelled',
     result: 'success',
     businessId,
     targetType: 'reviewed_operation',

@@ -625,7 +625,7 @@ describe('audit', () => {
     const events = await readBusinessAuditEvents(harness.db, fixture.businessId, { limit: 50 });
     const actions = events.map((event) => event.action);
 
-    expect(actions).toContain('listing.operation.proposed');
+    expect(actions).toContain('review.operation.proposed');
     expect(actions).toContain('listing.price.changed');
     for (const event of events) {
       expect(event.actorUserId).toBe(fixture.userId);

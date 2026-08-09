@@ -43,3 +43,17 @@ export {
   type PackageLineInput,
   type PackageRefusalReason,
 } from './packages';
+
+export { RateQuoteFailed, quoteRatesFor, type QuoteRatesInput, type QuotedRates } from './rates';
+
+export { cheapestOf, earliestProviderExpiry, rateFrom, usableUntil } from './rate-selection';
+
+export {
+  LabelPurchaseRefused,
+  executeLabelPurchase,
+  proposeLabelPurchase,
+  type ExecuteLabelPurchaseInput,
+  type LabelPurchaseRefusalReason,
+  type ProposeLabelPurchaseInput,
+  type ProposedLabelPurchase,
+} from './purchase';

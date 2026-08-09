@@ -194,7 +194,7 @@ export async function proposeOrderCopy(
   });
 
   await audit.record(db, {
-    action: 'listing.operation.proposed',
+    action: 'review.operation.proposed',
     result: 'success',
     businessId: input.businessId,
     targetType: 'reviewed_operation',

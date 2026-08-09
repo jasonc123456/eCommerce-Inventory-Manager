@@ -115,11 +115,14 @@ export const AUDIT_ACTIONS = [
   'inventory.kit.recipe_approved',
   'inventory.reservation.released',
 
-  // --- Reviewed listing operations -----------------------------------------
+  // --- The confirmation gate -----------------------------------------------
   //
-  // Sections 11, 13, 14, and 30. Section 19 requires audit coverage of
-  // publication and pricing mutations; these cover the decision as well as the
-  // effect, because for this family of operations the decision is the control.
+  // Sections 11, 13, 14, 21, and 30. Every operation a person authorizes one at
+  // a time passes through `@eim/review`, whatever it goes on to do, so its
+  // lifecycle is recorded once under its own prefix rather than under whichever
+  // feature happened to need it first. Publishing a listing, copying a price,
+  // and buying a shipping label produce the same four events here and differ
+  // only in what follows.
   //
   // `refused` is the one worth explaining. It records a confirmation that did
   // not go through — the preview had moved, the read had gone stale, the
@@ -127,15 +130,18 @@ export const AUDIT_ACTIONS = [
   // by the usual standard there is nothing to record; but these refusals are the
   // only evidence that the confirmation gate does anything, and a gate that has
   // never been observed to refuse is indistinguishable from an open door.
-  // Publication is one action rather than one per platform. What differs
-  // between publishing an eBay listing and a WooCommerce product is the
-  // permission demanded, and the operation record already names that; two
-  // actions would only mean every query about "what went live" had to remember
-  // both spellings.
-  'listing.operation.proposed',
-  'listing.operation.confirmed',
-  'listing.operation.refused',
-  'listing.operation.cancelled',
+  'review.operation.proposed',
+  'review.operation.confirmed',
+  'review.operation.refused',
+  'review.operation.cancelled',
+
+  // --- Reviewed listing operations -----------------------------------------
+  //
+  // What the confirmations above went on to do. Publication is one action
+  // rather than one per platform: what differs between publishing an eBay
+  // listing and a WooCommerce product is the permission demanded, and the
+  // operation record already names that; two actions would only mean every
+  // query about "what went live" had to remember both spellings.
   'listing.draft.created',
   'listing.draft.published',
   'listing.price.changed',

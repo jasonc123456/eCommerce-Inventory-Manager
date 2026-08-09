@@ -110,6 +110,11 @@ export default defineConfig({
         // The V-03 gate. What it refuses is the protection: an unmeasured
         // branch here is a copied order that halves a shop's stock figures.
         'packages/listings/src/suppression.ts',
+        // When a postage quote stops counting, and which of several rates is
+        // the cheapest. Both decide whether money may be spent and on what, and
+        // both are pure so that they can be tested without waiting for a
+        // carrier to withdraw a rate.
+        'packages/shipping/src/rate-selection.ts',
         // The web tier's security-critical pure helpers. The screens and server
         // actions are not measured here: they need a browser and a session, and
         // the integration and Compose tiers are where they are exercised.
@@ -285,6 +290,12 @@ export default defineConfig({
           statements: 90,
         },
         'packages/listings/src/suppression.ts': {
+          branches: 90,
+          functions: 90,
+          lines: 90,
+          statements: 90,
+        },
+        'packages/shipping/src/rate-selection.ts': {
           branches: 90,
           functions: 90,
           lines: 90,

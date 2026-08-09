@@ -144,7 +144,7 @@ export async function proposeDraft(
   });
 
   await audit.record(db, {
-    action: 'listing.operation.proposed',
+    action: 'review.operation.proposed',
     result: 'success',
     businessId: input.businessId,
     targetType: 'reviewed_operation',
@@ -352,7 +352,7 @@ export async function proposePublication(
   });
 
   await audit.record(db, {
-    action: 'listing.operation.proposed',
+    action: 'review.operation.proposed',
     result: 'success',
     businessId: input.businessId,
     targetType: 'reviewed_operation',
