@@ -364,11 +364,16 @@ create table shipment_labels (
 -- This is the duplicate-purchase guarantee, and it is here rather than only in
 -- the service because the failure it prevents costs real money: two people
 -- confirming the same package's rate at the same moment, or one person whose
--- browser retried a form post. A voided label frees the package, because buying
--- a replacement after voiding is the entire reason voiding exists.
+-- browser retried a form post.
+--
+-- Only `voided` frees the package. A refund the carrier is still considering
+-- leaves a label that may yet be used, and one the carrier has refused leaves a
+-- label that is definitely still valid and definitely still paid for — buying a
+-- second one in either case would spend money to replace postage the business
+-- already owns.
 create unique index shipment_labels_one_live_per_package
   on shipment_labels (business_id, package_id)
-  where state in ('purchased', 'void_requested');
+  where state in ('purchased', 'void_requested', 'void_refused');
 
 -- The provider's own identifier, unique within the account that bought it. A
 -- retry under the same idempotency key returns the same provider label, and this

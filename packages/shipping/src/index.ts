@@ -57,3 +57,14 @@ export {
   type ProposeLabelPurchaseInput,
   type ProposedLabelPurchase,
 } from './purchase';
+
+export {
+  LabelActionRefused,
+  fetchLabelDocument,
+  loadLabel,
+  voidLabel,
+  type FetchDocumentInput,
+  type LabelActionRefusalReason,
+  type VoidLabelInput,
+  type VoidedLabel,
+} from './labels';

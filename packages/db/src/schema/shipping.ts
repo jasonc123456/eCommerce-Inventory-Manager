@@ -167,8 +167,18 @@ export const shipmentLabelStates = [
 ] as const;
 export type ShipmentLabelState = (typeof shipmentLabelStates)[number];
 
-/** States in which a package still has a usable label and cannot buy another. */
-export const LIVE_LABEL_STATES: readonly ShipmentLabelState[] = ['purchased', 'void_requested'];
+/**
+ * States in which a package still has a usable label and cannot buy another.
+ *
+ * A refused void is on this list. The carrier has said no, so the label is still
+ * valid and still paid for, and buying a replacement would spend money on
+ * postage the business already owns.
+ */
+export const LIVE_LABEL_STATES: readonly ShipmentLabelState[] = [
+  'purchased',
+  'void_requested',
+  'void_refused',
+];
 
 export const shipmentLabels = pgTable(
   'shipment_labels',
