@@ -1,10 +1,14 @@
 import type {
+  AddOrderNoteInput,
   AdapterCapabilities,
   ChannelAdapter,
   ChannelEntityRef,
   CreateDraftInput,
+  CreateFulfillmentInput,
   DraftRef,
   FeeLine,
+  FulfillmentOperations,
+  FulfillmentRef,
   InboundWebhook,
   ListingLifecycleState,
   ListingOperations,
@@ -64,6 +68,21 @@ export interface FakeAdapterOptions {
    * test that does not gets an adapter which cannot publish anything.
    */
   readonly listingOperations?: boolean;
+  /**
+   * Whether this channel can be told that a parcel has gone.
+   *
+   * Off by default, so a test that means to exercise tracking propagation has
+   * to say so and a test that does not gets an adapter with nothing to tell.
+   */
+  readonly fulfillmentOperations?: boolean;
+  /**
+   * A fulfilment this channel already holds, keyed by idempotency key.
+   *
+   * Section 13's "ambiguous fulfillment retries first query existing
+   * fulfillments" is only testable against a provider that accepted the first
+   * attempt and failed to say so, which is what seeding this produces.
+   */
+  readonly existingFulfillments?: ReadonlyMap<string, string>;
   /** Fees `previewPublication` quotes. */
   readonly publicationFees?: readonly FeeLine[];
   /** Provider-side validation that would refuse publication. */
@@ -153,6 +172,18 @@ export class FakeChannelAdapter implements ChannelAdapter {
 
   public readonly listingOperations?: ListingOperations;
 
+  public readonly fulfillmentOperations?: FulfillmentOperations;
+
+  /** Every fulfilment this fake was asked to create, in order. */
+  public readonly fulfillments: CreateFulfillmentInput[] = [];
+  /** Every order note, in order. */
+  public readonly orderNotes: AddOrderNoteInput[] = [];
+  /** Every status change asked for, as `orderId:status`. */
+  public readonly statusChanges: string[] = [];
+
+  private readonly fulfillmentsByKey = new Map<string, string>();
+  private nextFulfillmentNumber = 1;
+
   /** Every price this fake was asked to write, in order. */
   public readonly priceWrites: RecordedPriceWrite[] = [];
 
@@ -205,6 +236,19 @@ export class FakeChannelAdapter implements ChannelAdapter {
     this.outOfStockControlEnabled = options.outOfStockControlEnabled ?? true;
     this.canSuppressStockReduction = options.canSuppressStockReduction ?? true;
 
+    for (const [key, id] of options.existingFulfillments ?? []) {
+      this.fulfillmentsByKey.set(key, id);
+    }
+
+    if (options.fulfillmentOperations === true) {
+      this.fulfillmentOperations = {
+        createFulfillment: (input) => this.createFulfillment(input),
+        findFulfillment: (input) => this.findFulfillment(input),
+        addOrderNote: (input) => this.addOrderNote(input),
+        setOrderStatus: (input) => this.setOrderStatus(input),
+      };
+    }
+
     if (options.listingOperations === true) {
       this.listingOperations = {
         createDraft: (input) => this.createDraft(input),
@@ -218,6 +262,85 @@ export class FakeChannelAdapter implements ChannelAdapter {
         createMirroredOrder: (input) => this.createMirroredOrder(input),
       };
     }
+  }
+
+  private createFulfillment(
+    input: CreateFulfillmentInput,
+  ): Promise<ProviderResult<FulfillmentRef>> {
+    this.calls.push('createFulfillment');
+    const failure = this.queuedFailures.shift();
+    if (failure !== undefined) {
+      // Recorded even on failure, because the ambiguous-timeout case is a
+      // provider that did the work and did not manage to say so.
+      this.fulfillments.push(input);
+      return Promise.resolve(failure);
+    }
+
+    this.fulfillments.push(input);
+
+    const existing = this.fulfillmentsByKey.get(input.idempotencyKey);
+    if (existing !== undefined) {
+      return Promise.resolve({
+        status: 'success',
+        value: { externalFulfillmentId: existing },
+      });
+    }
+
+    const externalFulfillmentId = `ful-${String(this.nextFulfillmentNumber++)}`;
+    this.fulfillmentsByKey.set(input.idempotencyKey, externalFulfillmentId);
+
+    return Promise.resolve({ status: 'success', value: { externalFulfillmentId } });
+  }
+
+  private findFulfillment(input: {
+    readonly externalOrderId: string;
+    readonly idempotencyKey: string;
+  }): Promise<ProviderResult<FulfillmentRef | null>> {
+    this.calls.push('findFulfillment');
+    const failure = this.queuedFailures.shift();
+    if (failure !== undefined) {
+      return Promise.resolve(failure);
+    }
+
+    const existing = this.fulfillmentsByKey.get(input.idempotencyKey);
+
+    return Promise.resolve({
+      status: 'success',
+      value: existing === undefined ? null : { externalFulfillmentId: existing },
+    });
+  }
+
+  private addOrderNote(
+    input: AddOrderNoteInput,
+  ): Promise<ProviderResult<{ readonly noteId: string }>> {
+    this.calls.push('addOrderNote');
+    const failure = this.queuedFailures.shift();
+    if (failure !== undefined) {
+      return Promise.resolve(failure);
+    }
+
+    this.orderNotes.push(input);
+
+    return Promise.resolve({
+      status: 'success',
+      value: { noteId: `note-${String(this.orderNotes.length)}` },
+    });
+  }
+
+  private setOrderStatus(input: {
+    readonly externalOrderId: string;
+    readonly status: string;
+    readonly idempotencyKey: string;
+  }): Promise<ProviderResult<{ readonly status: string }>> {
+    this.calls.push('setOrderStatus');
+    const failure = this.queuedFailures.shift();
+    if (failure !== undefined) {
+      return Promise.resolve(failure);
+    }
+
+    this.statusChanges.push(`${input.externalOrderId}:${input.status}`);
+
+    return Promise.resolve({ status: 'success', value: { status: input.status } });
   }
 
   private createMirroredOrder(

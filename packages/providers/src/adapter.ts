@@ -494,6 +494,91 @@ export interface PublishedListing {
 }
 
 /**
+ * Telling a channel that a parcel has gone (sections 13, 14).
+ *
+ * Optional and nested for the same reason `ListingOperations` is: presence is
+ * the capability. eBay takes a fulfilment with a tracking number; WooCommerce
+ * core has no fulfilment concept at all and takes a customer-visible order note
+ * and, when everything has shipped, a status change. An adapter implements what
+ * its platform actually offers, so a screen cannot advertise a button whose
+ * method does not exist.
+ *
+ * Section 14 is emphatic about what must *not* be here: "do not write unofficial
+ * plugin metadata". Tracking on WooCommerce goes into a note a customer can
+ * read, not into meta keys belonging to a plugin this application does not ship
+ * and cannot promise to keep in step with.
+ */
+export interface FulfillmentOperations {
+  /**
+   * Records a shipment against a channel order.
+   *
+   * Carries an idempotency key, and section 13 asks for more than that:
+   * "ambiguous fulfillment retries first query existing fulfillments". An
+   * adapter that can answer `findFulfillment` should, because a provider that
+   * accepted the first attempt and timed out before replying has already done
+   * the work.
+   */
+  createFulfillment?(input: CreateFulfillmentInput): Promise<ProviderResult<FulfillmentRef>>;
+
+  /** Whether a fulfilment for this key already exists. Null when it does not. */
+  findFulfillment?(input: {
+    readonly externalOrderId: string;
+    readonly idempotencyKey: string;
+  }): Promise<ProviderResult<FulfillmentRef | null>>;
+
+  /**
+   * Adds a note to a channel order.
+   *
+   * `customerVisible` is the whole point on WooCommerce: section 14 offers "a
+   * separately confirmed customer-visible order note with tracking", and a note
+   * the customer cannot see would be a private memo pretending to be a
+   * notification.
+   */
+  addOrderNote?(input: AddOrderNoteInput): Promise<ProviderResult<{ readonly noteId: string }>>;
+
+  /**
+   * Moves a channel order to a new status.
+   *
+   * Section 14 permits exactly one use of this: offering a confirmed update to
+   * `completed` once every quantity has shipped. Partially shipped orders keep
+   * their status, because WooCommerce core has no universal partial-fulfilment
+   * state and inventing one would mean writing a custom status this application
+   * would then have to interpret forever.
+   */
+  setOrderStatus?(input: {
+    readonly externalOrderId: string;
+    readonly status: string;
+    readonly idempotencyKey: string;
+  }): Promise<ProviderResult<{ readonly status: string }>>;
+}
+
+export interface FulfillmentLine {
+  readonly externalLineId: string;
+  readonly quantity: number;
+}
+
+export interface CreateFulfillmentInput {
+  readonly externalOrderId: string;
+  readonly lines: readonly FulfillmentLine[];
+  readonly carrier: string;
+  readonly trackingNumber: string;
+  readonly shippedAt: Date;
+  readonly idempotencyKey: string;
+}
+
+export interface FulfillmentRef {
+  readonly externalFulfillmentId: string;
+}
+
+export interface AddOrderNoteInput {
+  readonly externalOrderId: string;
+  readonly note: string;
+  /** Whether the customer sees it. Section 14 requires a note that they do. */
+  readonly customerVisible: boolean;
+  readonly idempotencyKey: string;
+}
+
+/**
  * The operations every channel adapter provides.
  *
  * Deliberately small. Everything a provider offers beyond this is either
@@ -567,6 +652,16 @@ export interface ChannelAdapter {
    * no method for, and a flag cannot disagree with the code beneath it.
    */
   readonly listingOperations?: ListingOperations;
+
+  /**
+   * How this channel is told that a parcel has gone, if it can be told at all.
+   *
+   * Absent means tracking stays inside this application, which is a supported
+   * outcome rather than a degraded one: section 14 makes the app-native package,
+   * label, carrier, and tracking records authoritative, and propagating them
+   * outward is an additional courtesy to the platform the customer bought on.
+   */
+  readonly fulfillmentOperations?: FulfillmentOperations;
 }
 
 /**

@@ -68,3 +68,13 @@ export {
   type VoidLabelInput,
   type VoidedLabel,
 } from './labels';
+
+export {
+  TrackingRefused,
+  everythingShipped,
+  markShipped,
+  pushTrackingToChannel,
+  recordTracking,
+  type PushTrackingInput,
+  type TrackingRefusalReason,
+} from './tracking';
