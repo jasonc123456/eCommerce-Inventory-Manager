@@ -1,6 +1,6 @@
 'use server';
 
-import { cancelOperation, confirmOperation } from '@eim/listings';
+import { cancelOperation, confirmOperation } from '@eim/review';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 

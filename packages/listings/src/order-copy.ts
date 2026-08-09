@@ -7,16 +7,16 @@ import {
   type MirroredOrderLine,
   type PostalContact,
 } from '@eim/providers';
-import { and, eq } from 'drizzle-orm';
-
-import type { FingerprintValue } from './fingerprint';
 import {
   beginExecution,
   completeExecution,
   failExecution,
   proposeOperation,
+  type FingerprintValue,
   type ProposedOperation,
-} from './review';
+} from '@eim/review';
+import { and, eq } from 'drizzle-orm';
+
 import { assessOrderCopySupport, type SuppressionTechnique } from './suppression';
 
 /**

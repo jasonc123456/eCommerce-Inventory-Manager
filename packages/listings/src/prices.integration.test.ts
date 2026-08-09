@@ -3,6 +3,7 @@ import type { Subject } from '@eim/authz';
 import { businesses, reviewedOperations, users } from '@eim/db';
 import { FakeChannelAdapter, type FakeAdapterOptions } from '@eim/providers';
 import { createTestDatabase, type TestDatabase } from '@eim/testing';
+import { confirmOperation } from '@eim/review';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -13,7 +14,6 @@ import {
   proposePriceCopy,
   type PriceSide,
 } from './prices';
-import { confirmOperation } from './review';
 
 /**
  * One price, once (sections 4, 14, 30).

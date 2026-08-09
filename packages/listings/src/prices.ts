@@ -7,16 +7,16 @@ import {
   type ChannelEntityRef,
   type FeeLine,
 } from '@eim/providers';
-
-import type { FingerprintValue } from './fingerprint';
-import { isAmount, isSameAmount, percentageDifference, subtractAmounts } from './money';
 import {
   beginExecution,
   completeExecution,
   failExecution,
   proposeOperation,
+  type FingerprintValue,
   type ProposedOperation,
-} from './review';
+} from '@eim/review';
+
+import { isAmount, isSameAmount, percentageDifference, subtractAmounts } from './money';
 
 /**
  * Comparing prices, and changing one of them exactly once (sections 4, 13, 14, 30).

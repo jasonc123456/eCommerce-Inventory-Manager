@@ -1,9 +1,9 @@
-export {
-  canonicalize,
-  fingerprintMatches,
-  fingerprintOf,
-  type FingerprintValue,
-} from './fingerprint';
+/**
+ * The confirmation gate itself lives in `@eim/review` and is not re-exported
+ * here. Milestone 6 gave it a second caller — buying a shipping label — and a
+ * package that re-exported another's gate would make `@eim/listings` look like
+ * where confirmation is decided when it is only one of the things confirmed.
+ */
 
 export {
   assessDraftEligibility,
@@ -46,15 +46,6 @@ export {
   type ProposedPublication,
   type PublishedDraft,
 } from './drafts';
-
-export {
-  assessFreshness,
-  reviewWindowFor,
-  sourceAgeMs,
-  type FreshnessInput,
-  type FreshnessVerdict,
-  type ReviewWindow,
-} from './freshness';
 
 export {
   AmountError,
@@ -113,20 +104,3 @@ export {
   type ProposeRestockInput,
   type ProposedRestock,
 } from './restock';
-
-export {
-  ReviewedOperationError,
-  beginExecution,
-  cancelOperation,
-  completeExecution,
-  confirmOperation,
-  expireProposals,
-  failExecution,
-  proposeOperation,
-  type ConfirmOperationInput,
-  type ConfirmOutcome,
-  type ConfirmedOperation,
-  type ProposeOperationInput,
-  type ProposedOperation,
-  type RefusedOperation,
-} from './review';

@@ -12,6 +12,7 @@ import {
 } from '@eim/db';
 import { FakeChannelAdapter } from '@eim/providers';
 import { createTestDatabase, type TestDatabase } from '@eim/testing';
+import { confirmOperation } from '@eim/review';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -23,7 +24,6 @@ import {
 } from './drafts';
 import { executeOrderCopy, proposeOrderCopy } from './order-copy';
 import { executePriceCopy, proposePriceCopy } from './prices';
-import { confirmOperation } from './review';
 import type { SuppressionTechnique } from './suppression';
 
 /**

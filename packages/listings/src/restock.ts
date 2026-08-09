@@ -6,21 +6,21 @@ import {
   type ChannelAdapter,
   type ChannelEntityRef,
 } from '@eim/providers';
+import {
+  beginExecution,
+  completeExecution,
+  failExecution,
+  proposeOperation,
+  type FingerprintValue,
+  type ProposedOperation,
+} from '@eim/review';
 
-import type { FingerprintValue } from './fingerprint';
 import {
   assessRestockEligibility,
   mayRestock,
   type RestockEligibility,
   type RestockSubject,
 } from './restock-eligibility';
-import {
-  beginExecution,
-  completeExecution,
-  failExecution,
-  proposeOperation,
-  type ProposedOperation,
-} from './review';
 
 /**
  * Putting an eligible listing back on sale (sections 6, 7, 13, 30).

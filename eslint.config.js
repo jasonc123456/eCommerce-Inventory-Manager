@@ -36,18 +36,24 @@ const FRAMEWORK_AND_IO = [
  * Milestone 5's exit gate requires that "no auto-publication/recurring-price
  * path exists". A test can show that nothing currently publishes by itself; only
  * this can show that nothing can be made to. The automatic tier — the scheduler,
- * the queue, and the worker that drains it — cannot import the package that
- * publishes listings, changes prices, or copies orders, so wiring one into a
- * background job is a build failure rather than a code review somebody has to
- * catch.
+ * the queue, and the worker that drains it — cannot import the packages that
+ * publish listings, change prices, copy orders, or spend a business's money on
+ * postage, so wiring one into a background job is a build failure rather than a
+ * code review somebody has to catch.
  *
  * The dependency runs the other way and always will: a reviewed operation may
  * enqueue work, and does. What it must never be is something work can enqueue.
+ *
+ * `@eim/review` is deliberately not on this list. It is the gate itself and can
+ * carry nothing out — no provider call lives in it — so a background job may use
+ * it to expire proposals nobody confirmed, which is exactly the kind of work a
+ * background job should be doing. Splitting the gate away from the operations
+ * was what made that distinction expressible.
  */
 const NO_REVIEWED_OPERATIONS = {
-  group: ['@eim/listings', '@eim/listings/*'],
+  group: ['@eim/listings', '@eim/listings/*', '@eim/shipping', '@eim/shipping/*'],
   message:
-    'Reviewed listing operations are confirmed by a person, never scheduled. Section 3 excludes automatic publication and recurring price synchronization from version 1.',
+    'Reviewed operations are confirmed by a person, never scheduled. Section 3 excludes automatic publication and recurring price synchronization from version 1, and section 30 requires a confirmed cost preview before any label purchase.',
 };
 
 const restrict = (patterns) => ({

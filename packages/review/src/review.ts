@@ -13,21 +13,23 @@ import { fingerprintMatches, fingerprintOf, type FingerprintValue } from './fing
 import { assessFreshness, reviewWindowFor } from './freshness';
 
 /**
- * Propose, confirm, execute — once (sections 11, 13, 14, 30).
+ * Propose, confirm, execute — once (sections 11, 13, 14, 21, 30).
  *
- * Every milestone-5 operation runs through this module, and the reason to have
- * one gate rather than five is that the five guarantees are identical and none
+ * Every reviewed operation runs through this module, and the reason to have one
+ * gate rather than one per feature is that the guarantees are identical and none
  * of them is the interesting part of any individual feature. Publishing a
- * listing and copying a price share nothing about what they do and everything
- * about what has to be true before they are allowed to happen: somebody with the
- * right permission, authenticated recently enough, agreed to this exact set of
- * values, which were read from the provider recently enough to still be true,
- * and the effect happens once.
+ * listing, copying a price, and buying a shipping label share nothing about what
+ * they do and everything about what has to be true before they are allowed to
+ * happen: somebody with the right permission, authenticated recently enough,
+ * agreed to this exact set of values, which were read from the provider recently
+ * enough to still be true, and the effect happens once.
  *
- * Written five times, one of them would eventually check the fingerprint after
- * the write, or forget the freshness window, or treat a missing permission as a
- * warning. Written once, the only way to add an operation is to inherit all of
- * it.
+ * Written once per feature, one of them would eventually check the fingerprint
+ * after the write, or forget the freshness window, or treat a missing permission
+ * as a warning. Written once, the only way to add an operation is to inherit all
+ * of it — which is what milestone 6 did, and the reason this module moved out of
+ * `packages/listings` rather than being called from a package that has nothing
+ * to do with listings.
  *
  * There is no `execute` here, deliberately. This module decides whether an
  * operation may proceed and records that it did; what actually reaches a

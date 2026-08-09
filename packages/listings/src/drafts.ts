@@ -6,6 +6,14 @@ import {
   type ChannelAdapter,
   type PublicationPreview,
 } from '@eim/providers';
+import {
+  beginExecution,
+  completeExecution,
+  failExecution,
+  proposeOperation,
+  type FingerprintValue,
+  type ProposedOperation,
+} from '@eim/review';
 import { and, eq } from 'drizzle-orm';
 
 import {
@@ -15,14 +23,6 @@ import {
   type DraftSource,
 } from './draft-eligibility';
 import { applySelections, draftIsComplete, projectDraft, type DraftSubject } from './draft-fields';
-import type { FingerprintValue } from './fingerprint';
-import {
-  beginExecution,
-  completeExecution,
-  failExecution,
-  proposeOperation,
-  type ProposedOperation,
-} from './review';
 
 /**
  * Two stages, two confirmations (sections 6, 10, 13, 14, 30).

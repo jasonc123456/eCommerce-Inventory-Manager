@@ -3,6 +3,7 @@ import type { Subject } from '@eim/authz';
 import { businesses, connections, mirroredOrders, reviewedOperations, users } from '@eim/db';
 import { FakeChannelAdapter, type FakeAdapterOptions } from '@eim/providers';
 import { createTestDatabase, type TestDatabase } from '@eim/testing';
+import { confirmOperation } from '@eim/review';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -12,7 +13,6 @@ import {
   proposeOrderCopy,
   type OrderCopySubject,
 } from './order-copy';
-import { confirmOperation } from './review';
 import type { SuppressionTechnique } from './suppression';
 
 /**

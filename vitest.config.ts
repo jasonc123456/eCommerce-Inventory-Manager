@@ -91,8 +91,8 @@ export default defineConfig({
         // the confirmation gate rather than decoration around it: the hash is
         // what makes a confirmation refer to one exact set of values, and the
         // windows are what stop a stale one being applied to different ones.
-        'packages/listings/src/fingerprint.ts',
-        'packages/listings/src/freshness.ts',
+        'packages/review/src/fingerprint.ts',
+        'packages/review/src/freshness.ts',
         // Section 6's conversion matrix and what a converted draft would say.
         // Both are pure decision tables, and in both the refusals and the
         // absences are the behaviour: an unmeasured branch is a product type
@@ -248,13 +248,13 @@ export default defineConfig({
         // have been refused. That is section 25's security domain exactly: what
         // these two refuse is the whole protection, and section 3's exclusion of
         // automatic publication and recurring price changes rests on them.
-        'packages/listings/src/fingerprint.ts': {
+        'packages/review/src/fingerprint.ts': {
           branches: 90,
           functions: 90,
           lines: 90,
           statements: 90,
         },
-        'packages/listings/src/freshness.ts': {
+        'packages/review/src/freshness.ts': {
           branches: 90,
           functions: 90,
           lines: 90,

@@ -10,11 +10,11 @@ import {
 } from '@eim/inventory';
 import { FakeChannelAdapter, type FakeAdapterOptions } from '@eim/providers';
 import { createTestDatabase, type TestDatabase } from '@eim/testing';
+import { confirmOperation } from '@eim/review';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { RestockRefused, executeRestockToLive, proposeRestockToLive } from './restock';
-import { confirmOperation } from './review';
 
 /**
  * Returning a hidden listing to sale (sections 6, 7, 13, 30).
