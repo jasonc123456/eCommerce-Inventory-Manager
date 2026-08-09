@@ -36,6 +36,27 @@ export {
 } from './adapter';
 
 export {
+  type BuyLabelInput,
+  type Parcel,
+  type PurchasedLabel,
+  type RateQuote,
+  type RateRequest,
+  type ShipmentAddress,
+  type ShipmentDocument,
+  type ShipmentDocumentType,
+  type ShippingAdapter,
+  type ShippingAdapterFactory,
+  type ShippingCapabilities,
+  type ShippingProviderName,
+  type ShippingRate,
+  type TrackingEvent,
+  type TrackingReport,
+  type TrackingStatus,
+  type VoidLabelResult,
+  type VoidOutcome,
+} from './shipping';
+
+export {
   describeFailure,
   isRetryable,
   isSuccess,
@@ -104,3 +125,10 @@ export {
   type RecordedPriceWrite,
   type RecordedWrite,
 } from './fakes/fake-adapter';
+
+export {
+  FakeShippingAdapter,
+  type FakeShippingAdapterOptions,
+  type RecordedPurchase,
+  type RecordedQuote,
+} from './fakes/fake-shipping-adapter';
