@@ -148,6 +148,33 @@ export const AUDIT_ACTIONS = [
   // place it creates one.
   'order.copied_to_woocommerce',
 
+  // --- Shipping ------------------------------------------------------------
+  //
+  // Sections 2, 13, 14, and 21. Section 19 requires audit coverage of
+  // shipping-label mutations, and this is the only family in the application
+  // that spends a business's money at a third party — so what is recorded is
+  // not only that a label was bought but everything around the money: the quote
+  // it was bought against, the void that asked for it back, and the carrier's
+  // answer.
+  //
+  // `document_accessed` is here because the document is the sensitive artifact
+  // rather than the record of it. A shipping label carries the buyer's name and
+  // postal address, the application deliberately does not store one, and the
+  // access is therefore the only trace that anybody ever saw it.
+  'shipping.account.connected',
+  'shipping.account.tested',
+  'shipping.account.disconnected',
+  'shipping.package.created',
+  'shipping.package.cancelled',
+  'shipping.package.shipped',
+  'shipping.rates.quoted',
+  'shipping.label.purchased',
+  'shipping.label.void_requested',
+  'shipping.label.voided',
+  'shipping.label.document_accessed',
+  'shipping.tracking.recorded',
+  'shipping.tracking.pushed',
+
   // --- Installation --------------------------------------------------------
   'installation.bootstrap.completed',
   'installation.bootstrap.failed',

@@ -26,6 +26,7 @@ export const OPERATION_LABELS: Readonly<Record<ReviewedOperationKind, string>> =
   price_copy: 'Copy a price',
   restock_to_live: 'Return a listing to sale',
   order_copy: 'Copy an order to WooCommerce',
+  label_purchase: 'Buy a shipping label',
 };
 
 export interface OpenOperation {

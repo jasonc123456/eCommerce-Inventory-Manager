@@ -38,6 +38,7 @@ describe('the action catalogue', () => {
       'listing',
       'member',
       'order',
+      'shipping',
       'user',
     ]);
   });

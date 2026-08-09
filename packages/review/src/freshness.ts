@@ -1,7 +1,7 @@
 import type { ReviewedOperationKind } from '@eim/db';
 
 /**
- * How long a review stays valid (sections 13, 14, 30).
+ * How long a review stays valid (sections 13, 14, 21, 30).
  *
  * Two clocks, not one, and conflating them is the mistake this module exists to
  * avoid.
@@ -62,6 +62,19 @@ const WINDOWS: Readonly<Record<ReviewedOperationKind, ReviewWindow>> = {
   // longest of the five: section 11 requires the user to see "all customer,
   // address, line, amount, tax, shipping, and status data" before confirming.
   order_copy: { sourceMaxAgeMs: 15 * MINUTE, proposalTtlMs: 60 * MINUTE },
+
+  // Postage. The source read is a rate quote, and what makes it go stale is the
+  // provider withdrawing it rather than the world moving: carriers reprice
+  // slowly, but both providers hold a quote open for a bounded time and will
+  // refuse to sell an expired one. Ten minutes is comfortably inside that and
+  // leaves room for somebody who is weighing a parcel between the quote and the
+  // click.
+  //
+  // This window is a ceiling, not the whole rule. Where the provider publishes
+  // its own expiry, the earlier of the two decides, because a quote this
+  // application still considers fresh is worth nothing if the carrier has
+  // already withdrawn it.
+  label_purchase: { sourceMaxAgeMs: 10 * MINUTE, proposalTtlMs: 20 * MINUTE },
 };
 
 export function reviewWindowFor(kind: ReviewedOperationKind): ReviewWindow {

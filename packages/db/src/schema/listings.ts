@@ -30,6 +30,10 @@ export const reviewedOperationKinds = [
   'price_copy',
   'restock_to_live',
   'order_copy',
+  // Milestone 6. On this table rather than a shipping-specific one because the
+  // guarantees are identical: an exact cost, agreed to by somebody who may
+  // spend, quoted recently enough to still be honoured, bought once.
+  'label_purchase',
 ] as const;
 export type ReviewedOperationKind = (typeof reviewedOperationKinds)[number];
 
