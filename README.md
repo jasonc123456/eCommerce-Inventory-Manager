@@ -3,10 +3,12 @@
 Self-hosted inventory synchronization between eBay and WooCommerce, built around
 a single canonical stock ledger that both channels project from.
 
-> **Status: milestone M0 — foundations.** The workspace, database schema,
-> background worker, and quality rails are in place and tested. There is no
-> user interface, no sign-in, and no marketplace connection yet. Those arrive in
-> M1 and M2. It is not usable as an application today.
+> **Status: milestones M0–M6 delivered.** Foundations, identity and tenancy,
+> read-only eBay and WooCommerce integration, the inventory model, the
+> synchronization core, reviewed listing operations, and shipping are built and
+> tested. Two capabilities are deliberately switched off pending external
+> verification — see [Not yet usable](#not-yet-usable) — and the pilot has not
+> run, so this is not yet a finished version 1.
 
 ## Why it exists
 
@@ -47,6 +49,19 @@ linked reversal, so the mistake and its correction are both visible afterwards.
 **One data store.** PostgreSQL holds the data, the job queue, the rate limits,
 and the event fan-out. No Redis, no second thing to back up.
 
+**Anything that spends money or changes what the public sees is confirmed by a
+person.** Publishing a listing, changing a price, returning a listing to sale,
+copying an order, buying a shipping label: each is proposed from a fresh read,
+shown in full, and authorized once against a fingerprint of the exact values on
+screen. There is no schedule anywhere that could do any of it unattended, and
+the automatic tier is forbidden by the linter from importing the code that can.
+
+**Buyer detail is not copied out of the provider.** Orders carry a pseudonymous
+buyer reference rather than a name and address, and shipping labels — which have
+both printed on them — are fetched from the carrier for one authorized access
+and never stored. Erasure obligations are much simpler when there is nothing to
+erase.
+
 ## Requirements
 
 - Docker and Docker Compose
@@ -69,6 +84,10 @@ cd eCommerce-Inventory-Manager
 
 `scripts/dev.sh` runs a command inside the development container. Drop the
 prefix if you have Node 24 and pnpm 11 natively.
+
+The interface lives at `/inventory`, `/mappings`, `/operations` (drafts, prices,
+and everything else awaiting a decision), `/shipping`, `/connections`, and
+`/members`.
 
 To run the web tier:
 
@@ -119,8 +138,21 @@ packages/
   authz/        Permission catalogue and authorization checks. Also pure.
   db/           Schema, forward migrations, typed queries, leader election.
   config/       The only place permitted to read process.env.
+  crypto/       Envelope encryption and the keyring. node:crypto and nothing else.
+  identity/     Sessions, sign-in challenges, passkeys, memberships, bootstrap.
+  audit/        The closed audit-action catalogue and the append-only recorder.
+  mail/         SMTP transport and the transactional messages.
+  ratelimit/    PostgreSQL fixed-window counters and in-memory pre-filtering.
   observability/ Structured logging with a field allowlist, and metrics.
-  providers/    Channel adapter contracts and programmable fakes.
+  providers/    Channel and shipping adapter contracts, and programmable fakes.
+  integrations/ eBay and WooCommerce clients, imports, webhooks, health, quotas.
+  inventory/    Database-backed inventory services over the pure domain.
+  jobs/         A generic durable queue. No domain knowledge.
+  sync/         Targets, order pipeline, cadence, reconciliation, alerts.
+  review/       The confirmation gate: propose, confirm, execute exactly once.
+  listings/     Drafts, publication, one-time prices, restock, order copy.
+  shipping/     Packages, rates, confirmed label purchase, voids, tracking.
+  ui/           Shared interface primitives.
   testing/      Test harnesses. Never a runtime dependency.
 docs/
   adr/          Architecture decision records.
@@ -130,29 +162,50 @@ docs/
 The boundaries are enforced by the linter, not by convention.
 `packages/domain` cannot import a framework, a database driver, or a provider —
 which is what makes the inventory rules readable and property-testable without
-any of it.
+any of it. `packages/sync`, `packages/jobs`, and `apps/worker` cannot import
+`@eim/listings` or `@eim/shipping` at all, which is what makes "nothing
+publishes or buys postage on its own" a build failure rather than a review
+somebody has to catch.
 
-## What M0 delivers
+## What is built
 
-- pnpm workspace with a version catalog, a frozen lockfile, and a two-day
-  minimum release age on every dependency
-- PostgreSQL schema for tenancy and inventory, with every constraint technique
-  the specification requires, and 40 integration tests proving each one bites
-- Forward-only migration runner: advisory-locked, checksum-verified, safe to run
-  from several containers at once
-- Background worker with lease-based leader election, verified against ten-way
-  concurrent contention
-- Web tier with liveness and readiness endpoints
-- Logging that filters every field through an allowlist at every level
-- Provider adapter contracts and a programmable fake, with no live HTTP anywhere
-- Tiered CI: fast checks, integration, CodeQL, and a Compose smoke test, with
-  every third-party action pinned to a commit SHA
-- Nine architecture decision records, each with the conditions for revisiting it
+| Milestone             | Delivers                                                                                                               | Proven by                                                       |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| M0 Foundations        | Workspace, schema, migration runner, leased worker, quality rails, ADRs                                                | Constraint suite against real PostgreSQL 18                     |
+| M1 Identity           | Sign-in links and codes, passkeys, TOTP, sessions, businesses, the permission catalogue, audit trail                   | `packages/identity` suites                                      |
+| M2 Integrations       | eBay and WooCommerce connections, catalog import, webhooks, health, quotas — all read-only                             | `packages/integrations/src/acceptance.integration.test.ts`      |
+| M3 Inventory          | Canonical ledger, locations, reservations, safety stock, channel caps, kits, mappings                                  | `packages/inventory` plus the `packages/domain` property suites |
+| M4 Synchronization    | Order pipeline, projection to channels, cadence, reconciliation, conflicts, alerts                                     | `packages/sync/src/acceptance.integration.test.ts`              |
+| M5 Listing operations | Drafts and two-stage publication with fees, one-time price copies, restock-to-live, the optional order copy            | `packages/listings/src/acceptance.integration.test.ts`          |
+| M6 Shipping           | Packages from unshipped lines, rate comparison, confirmed label purchase, voids, label documents, tracking propagation | `packages/shipping/src/acceptance.integration.test.ts`          |
 
-## What M0 does not deliver
+Each milestone's exit gate is a test rather than a claim, and each asserts the
+absences as well as the behaviour: no automatic publication path exists, no
+schedule can buy postage, and there is nowhere in the schema to store a label
+document.
 
-No sign-in. No eBay or WooCommerce connection. No catalog, mappings, orders, or
-synchronization. No user interface beyond a placeholder page.
+## Not yet usable
+
+Two capabilities are implemented, tested, and deliberately switched off, because
+each depends on a verification against a live third party that has not been
+performed. Neither is a placeholder: the mechanism is complete and the refusal is
+the specified behaviour until the evidence exists.
+
+**Copying an eBay order into WooCommerce** refuses on every WooCommerce version.
+Creating an order in a qualifying status makes WooCommerce run its own stock
+reduction on top of the projection the original sale already wrote, so the copy
+must suppress it. Every technique in the catalogue is recorded unverified until
+verification V-03 proves one against a real store, and the specification would
+rather the action be unavailable than ship a known double decrement.
+
+**Buying a shipping label** has no live provider behind it. There is no HTTP
+anywhere in the shipping path — the M6 exit gate asserts that structurally —
+because verification V-04 has not established EasyPost's and Easyship's current
+authentication, rate, label, refund, tracking, quota, and commercial contracts.
+Everything runs against a programmable fake until it does.
+
+Beyond those, the acceptance pilot has not run, and the AI assistance and
+release-hardening milestones have not started.
 
 ## Security
 
