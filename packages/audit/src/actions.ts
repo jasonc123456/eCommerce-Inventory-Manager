@@ -181,6 +181,32 @@ export const AUDIT_ACTIONS = [
   'shipping.tracking.recorded',
   'shipping.tracking.pushed',
 
+  // --- Optional AI ---------------------------------------------------------
+  //
+  // Section 18. The configuration actions are here for the obvious reason: an
+  // endpoint address and a credential are exactly what section 19 requires a
+  // trail for, and "who pointed this business's catalogue text at which host"
+  // is the question somebody will eventually need answered.
+  //
+  // `suggestion.requested` is recorded even when the answer never arrives, and
+  // `suggestion.refused` even though nothing happened, for the same reason the
+  // confirmation gate records its refusals: a budget that has never been
+  // observed to stop anything is indistinguishable from an absent one. The pair
+  // is also how a spend dispute gets settled — every request that could have
+  // cost money left a row, whether or not it produced a suggestion.
+  //
+  // `suggestion.applied` is the provenance section 18 asks for, and it is the
+  // action that proves the boundary: a model's answer becomes part of a draft
+  // only when a person takes it, and the row names that person.
+  'ai.provider.configured',
+  'ai.provider.tested',
+  'ai.provider.enabled',
+  'ai.provider.disabled',
+  'ai.provider.removed',
+  'ai.suggestion.requested',
+  'ai.suggestion.refused',
+  'ai.suggestion.applied',
+
   // --- Installation --------------------------------------------------------
   'installation.bootstrap.completed',
   'installation.bootstrap.failed',

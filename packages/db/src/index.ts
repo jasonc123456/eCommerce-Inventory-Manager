@@ -59,3 +59,4 @@ export * from './schema/reconciliation';
 export * from './schema/alerts';
 export * from './schema/listings';
 export * from './schema/shipping';
+export * from './schema/ai';

@@ -29,6 +29,7 @@ describe('the action catalogue', () => {
     const prefixes = new Set(AUDIT_ACTIONS.map((action) => action.split('.')[0]));
 
     expect([...prefixes].sort()).toEqual([
+      'ai',
       'auth',
       'authz',
       'business',
