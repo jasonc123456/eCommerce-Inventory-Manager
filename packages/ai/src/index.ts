@@ -29,3 +29,25 @@ export {
   type SuggestionKind,
   type SuggestionOutcome,
 } from './output';
+
+export {
+  createAiSecretStore,
+  type AiProviderRef,
+  type AiSecretDescription,
+  type AiSecretStore,
+  type AiSecretStoreOptions,
+  type PutAiSecret,
+} from './credentials';
+
+export {
+  AiConfigurationError,
+  configureProvider,
+  loadProvider,
+  removeProvider,
+  setProviderEnabled,
+  testProvider,
+  usableProvider,
+  type AdapterForProvider,
+  type AiConfigurationRefusal,
+  type ConfigureProviderInput,
+} from './providers';

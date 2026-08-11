@@ -144,3 +144,7 @@ export const aiSuggestions = pgTable(
   },
   (table) => [index('ai_suggestions_by_business').on(table.businessId, table.requestedAt)],
 );
+
+export type AiProvider = typeof aiProviders.$inferSelect;
+export type AiProviderSecret = typeof aiProviderSecrets.$inferSelect;
+export type AiSuggestion = typeof aiSuggestions.$inferSelect;

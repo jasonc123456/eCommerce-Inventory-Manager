@@ -37,8 +37,14 @@ const PUBLIC_PORTS = new Set([80, 443]);
  * front of one actually listens on; the restriction exists so that an entered
  * URL cannot be aimed at an internal service that merely speaks HTTP, such as
  * a database admin console or the Docker daemon.
+ *
+ * 11434 is Ollama's default and is here for the same reason the others are:
+ * section 19 names "local WooCommerce and Ollama integrations" as the two
+ * documented private-host exceptions, and a self-hoster who has opted into
+ * private destinations and then cannot reach the one on its own default port
+ * would work around this list rather than be protected by it.
  */
-const PRIVATE_PORTS = new Set([80, 443, 8000, 8080, 8443, 3000]);
+const PRIVATE_PORTS = new Set([80, 443, 8000, 8080, 8443, 3000, 11434]);
 
 export function validateIntegrationUrl(input: string, policy: UrlPolicy): UrlVerdict {
   const trimmed = input.trim();
