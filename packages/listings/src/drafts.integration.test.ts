@@ -205,6 +205,43 @@ describe('proposeDraft', () => {
     expect(second.fingerprint).not.toBe(first.fingerprint);
   });
 
+  it('marks which fields a model wrote, and puts the mark inside the agreement', async () => {
+    // Section 18 requires AI-filled fields to be visibly marked. Putting the
+    // names in the fingerprint as well as the preview is what makes the mark
+    // part of what was agreed to: the same title, written by a model rather
+    // than by the source, is a different draft.
+    const fixture = await seed();
+
+    const propose = (aiFilledFields: readonly string[] | undefined, subjectKey: string) =>
+      proposeDraft(harness.db, fixture.audit, {
+        businessId: fixture.businessId,
+        destination: 'woocommerce',
+        destinationConnectionId: crypto.randomUUID(),
+        source: { platform: 'ebay', format: 'fixed_price', variationCount: 1, state: 'active' },
+        subject,
+        sourceObservedAt: base,
+        actorUserId: fixture.userId,
+        subjectKey,
+        now: base,
+        ...(aiFilledFields === undefined ? {} : { aiFilledFields }),
+      });
+
+    const byHand = await propose(undefined, 'listing:by-hand');
+    const byModel = await propose(['title', 'description'], 'listing:by-model');
+
+    expect(byModel.fingerprint).not.toBe(byHand.fingerprint);
+
+    const [row] = await harness.db
+      .select()
+      .from(reviewedOperations)
+      .where(eq(reviewedOperations.id, byModel.operationId));
+
+    expect((row?.preview as { aiFilledFields?: string[] }).aiFilledFields).toEqual([
+      'description',
+      'title',
+    ]);
+  });
+
   it('records that it was proposed', async () => {
     const fixture = await seed();
     await createDraft(fixture);

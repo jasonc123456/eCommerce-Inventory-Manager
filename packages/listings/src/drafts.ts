@@ -57,6 +57,23 @@ export interface ProposeDraftInput {
   readonly subject: DraftSubject;
   /** Choices the reviewer has already made, such as an eBay category. */
   readonly selections?: Readonly<Record<string, string | number | boolean | readonly string[]>>;
+  /**
+   * Which fields a model wrote, if any (section 18).
+   *
+   * Section 18 requires that "AI-filled fields are visibly marked", and this is
+   * where that mark is made durable. The names go into the preview, so the
+   * screen can say which values came from a machine, and into the fingerprint,
+   * so agreeing to a draft is agreeing to a specific set of machine-written
+   * fields. A field that was the model's when it was reviewed and the source's
+   * when it was confirmed is a different draft, and the confirmation is refused.
+   *
+   * Nothing here trusts the caller about the values themselves. The values
+   * arrived through `@eim/ai`, which has already dropped anything section 18
+   * protects; this only records where they came from.
+   */
+  readonly aiFilledFields?: readonly string[];
+  /** The suggestion these fields came from, for the provenance record. */
+  readonly suggestionId?: string;
   /** When the source record was read from its provider. */
   readonly sourceObservedAt: Date;
   readonly actorUserId: string;
@@ -106,6 +123,10 @@ export async function proposeDraft(
   const projected = projectDraft({ subject: input.subject, destination: input.destination });
   const projection = applySelections(projected, input.selections ?? {});
 
+  // Sorted, so two proposals that marked the same fields hash the same however
+  // the caller happened to order them.
+  const aiFilledFields = [...(input.aiFilledFields ?? [])].sort();
+
   const decisive: FingerprintValue = {
     destination: input.destination,
     fields: projection.fields as Record<string, FingerprintValue>,
@@ -115,6 +136,10 @@ export async function proposeDraft(
     // exactly that without changing a single carried value.
     unsupported: [...projection.unsupported],
     missing: [...projection.missing],
+    // Same reasoning, for the same reason section 18 asks these to be visible:
+    // agreeing to a title somebody wrote is not agreeing to a title a model
+    // wrote, even when the two strings match.
+    aiFilledFields,
   };
 
   const proposal = await proposeOperation(db, {
@@ -130,6 +155,8 @@ export async function proposeDraft(
       requiresSelection: projection.requiresSelection,
       unsupported: projection.unsupported,
       warnings: [...eligibility.warnings, ...projection.warnings],
+      aiFilledFields,
+      suggestionId: input.suggestionId ?? null,
     },
     decisive,
     sourceObservedAt: input.sourceObservedAt,
@@ -154,6 +181,7 @@ export async function proposeDraft(
       destination: input.destination,
       missing: projection.missing,
       unsupported: projection.unsupported,
+      aiFilledFields,
     },
   });
 

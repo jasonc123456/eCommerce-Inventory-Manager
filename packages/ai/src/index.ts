@@ -87,3 +87,13 @@ export {
 } from './suggest';
 
 export { createAiAdapter, type AiEndpointOptions } from './endpoints';
+
+export {
+  SubjectNotFound,
+  draftSubjectFor,
+  kitSubjectFor,
+  mappingSubjectFor,
+  type DraftSubjectInput,
+  type KitSubjectInput,
+  type MappingSubjectInput,
+} from './subjects';
