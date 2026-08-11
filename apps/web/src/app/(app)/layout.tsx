@@ -85,6 +85,9 @@ export default async function ApplicationLayout({ children }: { children: ReactN
           <Link href="/connections" className="underline">
             Connections
           </Link>
+          <Link href="/ai" className="underline">
+            AI
+          </Link>
           <Link href="/members" className="underline">
             Members
           </Link>

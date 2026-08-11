@@ -200,6 +200,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@eim/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
       '@eim/audit':
         specifier: workspace:*
         version: link:../../packages/audit

@@ -33,6 +33,25 @@ export const metadata = { title: 'Drafts and prices' };
  * anything automatically. Section 3 excludes both, and the shape of this screen
  * is what that exclusion looks like.
  */
+
+/**
+ * Which fields of a preview a model wrote (section 18).
+ *
+ * Read out of the stored preview rather than passed alongside it, because the
+ * preview is what was fingerprinted: a mark carried separately could say one
+ * thing while the agreement said another.
+ */
+function aiFilledFields(preview: unknown): readonly string[] {
+  const named =
+    preview !== null && typeof preview === 'object'
+      ? (preview as { aiFilledFields?: unknown }).aiFilledFields
+      : undefined;
+
+  return Array.isArray(named)
+    ? named.filter((name): name is string => typeof name === 'string')
+    : [];
+}
+
 export default async function OperationsPage() {
   const context = await currentContext();
 
@@ -94,6 +113,20 @@ export default async function OperationsPage() {
               <dt className="text-slate-500">State</dt>
               <dd>{operation.state}</dd>
             </dl>
+
+            {/*
+              Section 18: "AI-filled fields are visibly marked". Said in words
+              above the preview rather than left for somebody to notice inside
+              it, because this is the sentence that changes how the rest of the
+              screen should be read. The names are inside the fingerprint too,
+              so confirming is agreeing to these fields having come from a model.
+            */}
+            {aiFilledFields(operation.preview).length > 0 ? (
+              <Notice tone="info">
+                A model wrote {aiFilledFields(operation.preview).join(', ')}. Read those before
+                confirming: they are a suggestion somebody accepted, not a value from your records.
+              </Notice>
+            ) : null}
 
             {/*
               The stored preview, rendered as it was recorded. Formatting each
