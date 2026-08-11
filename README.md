@@ -3,12 +3,12 @@
 Self-hosted inventory synchronization between eBay and WooCommerce, built around
 a single canonical stock ledger that both channels project from.
 
-> **Status: milestones M0–M6 delivered.** Foundations, identity and tenancy,
+> **Status: milestones M0–M7 delivered.** Foundations, identity and tenancy,
 > read-only eBay and WooCommerce integration, the inventory model, the
-> synchronization core, reviewed listing operations, and shipping are built and
-> tested. Two capabilities are deliberately switched off pending external
-> verification — see [Not yet usable](#not-yet-usable) — and the pilot has not
-> run, so this is not yet a finished version 1.
+> synchronization core, reviewed listing operations, shipping, and optional AI
+> assistance are built and tested. Two capabilities are deliberately switched off
+> pending external verification — see [Not yet usable](#not-yet-usable) — and the
+> pilot has not run, so this is not yet a finished version 1.
 
 ## Why it exists
 
@@ -62,6 +62,14 @@ both printed on them — are fetched from the carrier for one authorized access
 and never stored. Erasure obligations are much simpler when there is nothing to
 erase.
 
+**A model may suggest, and can reach nothing that acts.** AI is optional, off
+until a business configures it, and triggered by a person. The adapter has no
+tool or function surface, the suggestion types have no field for a price, a SKU,
+a quantity, a condition, or a policy, and the linter forbids the AI package from
+importing anything that publishes, prices, ships, confirms, or moves stock —
+and forbids the scheduler from importing the AI package. Prompt injection is not
+prevented; it is made pointless, because there is no authority to hijack.
+
 ## Requirements
 
 - Docker and Docker Compose
@@ -86,7 +94,7 @@ cd eCommerce-Inventory-Manager
 prefix if you have Node 24 and pnpm 11 natively.
 
 The interface lives at `/inventory`, `/mappings`, `/operations` (drafts, prices,
-and everything else awaiting a decision), `/shipping`, `/connections`, and
+and everything else awaiting a decision), `/shipping`, `/connections`, `/ai`, and
 `/members`.
 
 To run the web tier:
@@ -152,6 +160,7 @@ packages/
   review/       The confirmation gate: propose, confirm, execute exactly once.
   listings/     Drafts, publication, one-time prices, restock, order copy.
   shipping/     Packages, rates, confirmed label purchase, voids, tracking.
+  ai/           Optional suggestions: validated output, protected facts, budgets.
   ui/           Shared interface primitives.
   testing/      Test harnesses. Never a runtime dependency.
 docs/
@@ -163,26 +172,29 @@ The boundaries are enforced by the linter, not by convention.
 `packages/domain` cannot import a framework, a database driver, or a provider —
 which is what makes the inventory rules readable and property-testable without
 any of it. `packages/sync`, `packages/jobs`, and `apps/worker` cannot import
-`@eim/listings` or `@eim/shipping` at all, which is what makes "nothing
-publishes or buys postage on its own" a build failure rather than a review
-somebody has to catch.
+`@eim/listings`, `@eim/shipping`, or `@eim/ai` at all, which is what makes
+"nothing publishes, buys postage, or asks a model on its own" a build failure
+rather than a review somebody has to catch. The boundary runs the other way too:
+`packages/ai` cannot import any of the packages that publish, price, ship,
+confirm, or move stock.
 
 ## What is built
 
-| Milestone             | Delivers                                                                                                               | Proven by                                                       |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| M0 Foundations        | Workspace, schema, migration runner, leased worker, quality rails, ADRs                                                | Constraint suite against real PostgreSQL 18                     |
-| M1 Identity           | Sign-in links and codes, passkeys, TOTP, sessions, businesses, the permission catalogue, audit trail                   | `packages/identity` suites                                      |
-| M2 Integrations       | eBay and WooCommerce connections, catalog import, webhooks, health, quotas — all read-only                             | `packages/integrations/src/acceptance.integration.test.ts`      |
-| M3 Inventory          | Canonical ledger, locations, reservations, safety stock, channel caps, kits, mappings                                  | `packages/inventory` plus the `packages/domain` property suites |
-| M4 Synchronization    | Order pipeline, projection to channels, cadence, reconciliation, conflicts, alerts                                     | `packages/sync/src/acceptance.integration.test.ts`              |
-| M5 Listing operations | Drafts and two-stage publication with fees, one-time price copies, restock-to-live, the optional order copy            | `packages/listings/src/acceptance.integration.test.ts`          |
-| M6 Shipping           | Packages from unshipped lines, rate comparison, confirmed label purchase, voids, label documents, tracking propagation | `packages/shipping/src/acceptance.integration.test.ts`          |
+| Milestone             | Delivers                                                                                                                     | Proven by                                                       |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| M0 Foundations        | Workspace, schema, migration runner, leased worker, quality rails, ADRs                                                      | Constraint suite against real PostgreSQL 18                     |
+| M1 Identity           | Sign-in links and codes, passkeys, TOTP, sessions, businesses, the permission catalogue, audit trail                         | `packages/identity` suites                                      |
+| M2 Integrations       | eBay and WooCommerce connections, catalog import, webhooks, health, quotas — all read-only                                   | `packages/integrations/src/acceptance.integration.test.ts`      |
+| M3 Inventory          | Canonical ledger, locations, reservations, safety stock, channel caps, kits, mappings                                        | `packages/inventory` plus the `packages/domain` property suites |
+| M4 Synchronization    | Order pipeline, projection to channels, cadence, reconciliation, conflicts, alerts                                           | `packages/sync/src/acceptance.integration.test.ts`              |
+| M5 Listing operations | Drafts and two-stage publication with fees, one-time price copies, restock-to-live, the optional order copy                  | `packages/listings/src/acceptance.integration.test.ts`          |
+| M6 Shipping           | Packages from unshipped lines, rate comparison, confirmed label purchase, voids, label documents, tracking propagation       | `packages/shipping/src/acceptance.integration.test.ts`          |
+| M7 Optional AI        | OpenAI-compatible and Ollama endpoints, draft/kit/mapping suggestions, protected facts, budgets, privacy preview, provenance | `packages/ai/src/acceptance.integration.test.ts`                |
 
 Each milestone's exit gate is a test rather than a claim, and each asserts the
 absences as well as the behaviour: no automatic publication path exists, no
-schedule can buy postage, and there is nowhere in the schema to store a label
-document.
+schedule can buy postage or ask a model, there is nowhere in the schema to store
+a label document, and there is no ceiling on AI spending that can be removed.
 
 ## Not yet usable
 
@@ -204,8 +216,10 @@ because verification V-04 has not established EasyPost's and Easyship's current
 authentication, rate, label, refund, tracking, quota, and commercial contracts.
 Everything runs against a programmable fake until it does.
 
-Beyond those, the acceptance pilot has not run, and the AI assistance and
-release-hardening milestones have not started.
+Beyond those, the acceptance pilot has not run and the release-hardening
+milestone has not started. AI assistance is complete but arrives switched off,
+which is its specified default rather than a limitation: a business configures an
+endpoint, tests it, and turns it on, and until then nothing is sent anywhere.
 
 ## Security
 
