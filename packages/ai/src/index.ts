@@ -65,3 +65,15 @@ export {
 } from './budget';
 
 export { readCurrentUsage, readUsage } from './usage';
+
+export {
+  FENCE_MARKERS,
+  buildRequest,
+  type BuildRequestOptions,
+  type BuiltRequest,
+  type DraftSubjectText,
+  type KitSubjectText,
+  type MappingSubjectText,
+  type RequestPreview,
+  type SubjectText,
+} from './request';
