@@ -115,6 +115,12 @@ export default defineConfig({
         // both are pure so that they can be tested without waiting for a
         // carrier to withdraw a rate.
         'packages/shipping/src/rate-selection.ts',
+        // What a model is allowed to have said. Section 18's protected facts are
+        // enforced here and nowhere else, which makes this a security domain in
+        // section 25's sense: an unmeasured branch is a price, a SKU, or a
+        // fabricated product identifier arriving on a listing from a model.
+        'packages/ai/src/output.ts',
+        'packages/ai/src/protected-fields.ts',
         // The web tier's security-critical pure helpers. The screens and server
         // actions are not measured here: they need a browser and a session, and
         // the integration and Compose tiers are where they are exercised.
@@ -296,6 +302,21 @@ export default defineConfig({
           statements: 90,
         },
         'packages/shipping/src/rate-selection.ts': {
+          branches: 90,
+          functions: 90,
+          lines: 90,
+          statements: 90,
+        },
+        // An unmeasured branch here is a protected fact that reached a screen,
+        // or a malformed answer that was treated as a suggestion. Both are the
+        // failures section 18 exists to prevent.
+        'packages/ai/src/output.ts': {
+          branches: 90,
+          functions: 90,
+          lines: 90,
+          statements: 90,
+        },
+        'packages/ai/src/protected-fields.ts': {
           branches: 90,
           functions: 90,
           lines: 90,
