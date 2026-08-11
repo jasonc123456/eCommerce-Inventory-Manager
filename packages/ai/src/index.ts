@@ -51,3 +51,17 @@ export {
   type AiConfigurationRefusal,
   type ConfigureProviderInput,
 } from './providers';
+
+export {
+  assessBudget,
+  compareDecimal,
+  estimateCost,
+  monthWindow,
+  subtractDecimal,
+  type BudgetRemaining,
+  type BudgetUsage,
+  type BudgetVerdict,
+  type BudgetWindow,
+} from './budget';
+
+export { readCurrentUsage, readUsage } from './usage';

@@ -121,6 +121,9 @@ export default defineConfig({
         // fabricated product identifier arriving on a listing from a model.
         'packages/ai/src/output.ts',
         'packages/ai/src/protected-fields.ts',
+        // What a month of asking is allowed to cost. Pure and clock-free so the
+        // ceilings can be tested without waiting for a month or a bill.
+        'packages/ai/src/budget.ts',
         // The web tier's security-critical pure helpers. The screens and server
         // actions are not measured here: they need a browser and a session, and
         // the integration and Compose tiers are where they are exercised.
@@ -317,6 +320,14 @@ export default defineConfig({
           statements: 90,
         },
         'packages/ai/src/protected-fields.ts': {
+          branches: 90,
+          functions: 90,
+          lines: 90,
+          statements: 90,
+        },
+        // An unmeasured branch here is a ceiling that never refuses, which is
+        // section 18's spend limit quietly absent.
+        'packages/ai/src/budget.ts': {
           branches: 90,
           functions: 90,
           lines: 90,
