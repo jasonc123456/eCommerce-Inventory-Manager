@@ -88,8 +88,8 @@ catalogs:
       specifier: 8.22.0
       version: 8.22.0
     pg-boss:
-      specifier: 12.26.4
-      version: 12.26.4
+      specifier: 12.27.0
+      version: 12.27.0
     pino:
       specifier: 10.3.1
       version: 10.3.1
@@ -181,7 +181,7 @@ importers:
         version: 2.1.10
       pg-boss:
         specifier: 'catalog:'
-        version: 12.26.4
+        version: 12.27.0
       prettier:
         specifier: 'catalog:'
         version: 3.9.6
@@ -3573,8 +3573,8 @@ packages:
   pathe@2.0.3:
     resolution: {integrity: sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==}
 
-  pg-boss@12.26.4:
-    resolution: {integrity: sha512-CLcn6WKhmBbSNTMckx5wKeqlMDryIN/X71zQFOLc0okjDsQwtSym2O2bvB5iSIxvlVF6sHrVld8NZ7QrQuYaVg==}
+  pg-boss@12.27.0:
+    resolution: {integrity: sha512-DawcUffyDVJvxGYvaoc7B+G1yY86dJtvugVYMAt+CtO6Lg+RSyQuAU7IRfNyhqi0Bo/JeaxLqhqIy5+twpmYlg==}
     engines: {node: '>=22.12.0'}
     hasBin: true
 
@@ -6921,7 +6921,7 @@ snapshots:
 
   pathe@2.0.3: {}
 
-  pg-boss@12.26.4:
+  pg-boss@12.27.0:
     dependencies:
       cron-parser: 5.7.0
       pg: 8.22.0
