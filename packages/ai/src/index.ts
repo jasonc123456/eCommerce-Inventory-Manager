@@ -85,3 +85,5 @@ export {
   type SuggestInput,
   type SuggestionResult,
 } from './suggest';
+
+export { createAiAdapter, type AiEndpointOptions } from './endpoints';

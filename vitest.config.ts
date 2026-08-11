@@ -128,6 +128,10 @@ export default defineConfig({
         // here. Section 18's privacy rules are properties of this output, so an
         // unmeasured branch is data leaving in a shape nobody checked.
         'packages/ai/src/request.ts',
+        // The two real endpoints. What is measured is the translation — which
+        // refusal becomes which outcome — because a misclassified failure is a
+        // credential retried into a lockout or a rate limit hammered.
+        'packages/ai/src/endpoints.ts',
         // The web tier's security-critical pure helpers. The screens and server
         // actions are not measured here: they need a browser and a session, and
         // the integration and Compose tiers are where they are exercised.
@@ -338,6 +342,12 @@ export default defineConfig({
           statements: 90,
         },
         'packages/ai/src/request.ts': {
+          branches: 90,
+          functions: 90,
+          lines: 90,
+          statements: 90,
+        },
+        'packages/ai/src/endpoints.ts': {
           branches: 90,
           functions: 90,
           lines: 90,
