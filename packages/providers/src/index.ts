@@ -41,6 +41,15 @@ export {
 } from './adapter';
 
 export {
+  type AiAdapter,
+  type AiAdapterFactory,
+  type AiCapabilities,
+  type AiCompletion,
+  type AiProviderKind,
+  type AiRequest,
+} from './ai';
+
+export {
   type BuyLabelInput,
   type Parcel,
   type PurchasedLabel,
@@ -130,6 +139,8 @@ export {
   type RecordedPriceWrite,
   type RecordedWrite,
 } from './fakes/fake-adapter';
+
+export { FakeAiAdapter, type FakeAiAdapterOptions } from './fakes/fake-ai-adapter';
 
 export {
   FakeShippingAdapter,
