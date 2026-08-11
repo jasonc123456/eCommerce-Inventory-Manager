@@ -51,9 +51,58 @@ const FRAMEWORK_AND_IO = [
  * was what made that distinction expressible.
  */
 const NO_REVIEWED_OPERATIONS = {
-  group: ['@eim/listings', '@eim/listings/*', '@eim/shipping', '@eim/shipping/*'],
+  group: [
+    '@eim/listings',
+    '@eim/listings/*',
+    '@eim/shipping',
+    '@eim/shipping/*',
+    // Section 18: "AI is administrator-triggered for a single draft/recipe
+    // suggestion in version 1" with "no background or automatic publication". A
+    // suggestion nobody asked for is a bill nobody agreed to, and one produced
+    // while nobody was looking is a field filled in by a machine with no
+    // reviewer attached. Same boundary, same reason.
+    '@eim/ai',
+    '@eim/ai/*',
+  ],
   message:
-    'Reviewed operations are confirmed by a person, never scheduled. Section 3 excludes automatic publication and recurring price synchronization from version 1, and section 30 requires a confirmed cost preview before any label purchase.',
+    'Reviewed operations and AI suggestions are triggered by a person, never scheduled. Section 3 excludes automatic publication and recurring price synchronization from version 1, section 30 requires a confirmed cost preview before any label purchase, and section 18 makes AI administrator-triggered with no background path.',
+};
+
+/**
+ * A model can suggest, and can reach nothing that acts (sections 3, 18, 30).
+ *
+ * Section 18 says the model receives "no credentials, publishing tools,
+ * customer/order PII, or unrestricted network access". Three of those four are
+ * enforced by this list rather than by care.
+ *
+ * `@eim/listings` and `@eim/shipping` are the code that publishes a listing,
+ * changes a price, copies an order, and buys postage. `@eim/review` is the gate
+ * those go through. `@eim/inventory` writes the ledger. None is importable here,
+ * so "a suggestion cannot become an action without passing through a person" is
+ * a build failure rather than a convention — the AI package has no function it
+ * could call even if somebody wanted it to.
+ *
+ * The direction that remains open is the useful one: a screen that has a
+ * suggestion may propose an operation with it, because a screen has a person in
+ * front of it.
+ */
+const NO_ACTING_ON_A_SUGGESTION = {
+  group: [
+    '@eim/listings',
+    '@eim/listings/*',
+    '@eim/shipping',
+    '@eim/shipping/*',
+    '@eim/review',
+    '@eim/review/*',
+    '@eim/inventory',
+    '@eim/inventory/*',
+    '@eim/sync',
+    '@eim/sync/*',
+    '@eim/jobs',
+    '@eim/jobs/*',
+  ],
+  message:
+    'A suggestion is read by a person and applied by a person. Section 18 gives the model no publishing tools, and this package must not be able to reach any code that publishes, prices, ships, confirms, or moves stock.',
 };
 
 const restrict = (patterns) => ({
@@ -173,6 +222,10 @@ export default tseslint.config(
       // nowhere to store a label document, and both are absences that can only
       // be checked against the files that would have to contain them.
       'packages/shipping/src/acceptance.integration.test.ts',
+      // And the M7 exit gate, which proves that no automatic path to a
+      // suggestion exists and that no order table is reachable from the code
+      // that decides what leaves the building.
+      'packages/ai/src/acceptance.integration.test.ts',
     ],
     rules: {
       'no-restricted-properties': 'off',
@@ -252,6 +305,30 @@ export default tseslint.config(
   {
     files: ['packages/sync/**/*.ts', 'packages/jobs/**/*.ts'],
     rules: restrict([NO_REVIEWED_OPERATIONS]),
+  },
+
+  // Optional AI: suggestions only, and no way to reach anything that acts.
+  {
+    files: ['packages/ai/**/*.ts'],
+    rules: restrict([
+      NO_ACTING_ON_A_SUGGESTION,
+      { group: ['next', 'next/*'], message: 'Framework imports are not allowed here.' },
+      { group: ['react', 'react-dom'], message: 'UI imports are not allowed here.' },
+      {
+        group: ['node:fs', 'node:fs/*', 'node:net', 'node:http', 'node:https'],
+        message:
+          'Outbound requests go through the section 19 HTTP client in @eim/providers, which validates the destination, pins the address, and bounds the response.',
+      },
+    ]),
+  },
+
+  // The M7 exit gate reads this repository's own configuration, manifests, and
+  // migration to prove absences that only the files which would contain them can
+  // disprove. It is a test rather than a runtime path, so the no-direct-I/O rule
+  // above does not apply to it; every other rule still does.
+  {
+    files: ['packages/ai/src/acceptance.integration.test.ts'],
+    rules: { 'no-restricted-imports': 'off' },
   },
 
   // Web application: React, hooks, and accessibility rules.
