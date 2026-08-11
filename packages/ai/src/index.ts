@@ -77,3 +77,11 @@ export {
   type RequestPreview,
   type SubjectText,
 } from './request';
+
+export {
+  SuggestionApplicationError,
+  markSuggestionApplied,
+  suggest,
+  type SuggestInput,
+  type SuggestionResult,
+} from './suggest';
