@@ -1,0 +1,161 @@
+# The production Compose template (section 23).
+#
+# THIS FILE IS A TEMPLATE. Copy it to DEPLOY_ROOT/docker-compose.yml and edit it
+# there. Section 23 is explicit that the real Compose file and the real .env
+# live outside this repository, and that "deployment tooling copies/merges them
+# explicitly rather than treating the real parent files as tracked source".
+#
+#     cp deploy/docker-compose.example.yml ../../docker-compose.yml
+#
+# The `.example` in the name is not decoration: the pre-commit hook refuses to
+# commit any file called `docker-compose.yml`, because the real one holds an
+# installation's deployment state and must never be tracked (section 23, D-092).
+#
+# The layout it assumes is section 23's, exactly:
+#
+#     /home/jason/deployment/inventory.diygeeks.io/
+#     ├── .env                  # real secrets; never in Git
+#     ├── docker-compose.yml    # your copy of this file; never in Git
+#     ├── data/                 # DATA_ROOT; every durable bind mount
+#     └── workspace/eCommerce-Inventory-Manager/   # this repository
+#
+# Four things here are load-bearing rather than conventional.
+#
+# Only the web service publishes a port, and it publishes to loopback. Section
+# 23: "only the proxy/web entry point publishes host ports; worker and
+# PostgreSQL remain internal." An external reverse proxy is the supported
+# default, so the application is reachable from the proxy and from nothing else.
+#
+# The image is pinned by digest, not by tag. Section 23 requires production
+# documentation to pin a version or a digest, and a tag is a name somebody can
+# move. `latest` exists as a convenience and is never the documented upgrade
+# target.
+#
+# `migrate` is a one-shot service that must complete before web and worker
+# start. Running migrations from inside the application would mean every replica
+# racing to apply them, and a half-applied schema is the one state this system
+# cannot reason about.
+#
+# PostgreSQL runs under an explicit `user:` matching the deployment
+# administrator's uid and gid (D-092). That is what keeps everything under
+# data/postgres readable and backup-able without `sudo`, and what makes a
+# host-to-host migration an ownership check rather than a recursive chown.
+
+name: eim
+
+x-image: &image
+  # Replace with the digest of the release you are deploying. `docker pull` the
+  # tag once, read the digest it reports, and pin that.
+  image: ghcr.io/jasonc123456/ecommerce-inventory-manager@sha256:CHANGE_ME_TO_THE_RELEASE_DIGEST
+  env_file: [.env]
+  restart: unless-stopped
+  # The application never needs to add capabilities, write outside its mounts,
+  # or escalate. Saying so is cheap and closes a category of container escape.
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: ["ALL"]
+  # Section 22: bounded Docker log rotation, so stdout cannot fill the volume
+  # the database is on.
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "5" }
+
+services:
+  postgres:
+    image: postgres:18-bookworm
+    restart: unless-stopped
+    # The deployment administrator's ids, from .env. Not the image's built-in
+    # account: that number can change between image builds, and every file under
+    # data/postgres would then belong to somebody who no longer exists.
+    user: "${EIM_DATA_UID:-1000}:${EIM_DATA_GID:-1000}"
+    environment:
+      POSTGRES_DB: eim
+      POSTGRES_USER: eim
+      POSTGRES_PASSWORD: ${EIM_POSTGRES_PASSWORD:?set EIM_POSTGRES_PASSWORD in .env}
+      # Deterministic collation, so an index built on one host keeps its meaning
+      # on another. A locale difference silently changes text ordering, which
+      # corrupts unique indexes across a server migration.
+      POSTGRES_INITDB_ARGS: "--locale=C.UTF-8 --encoding=UTF8"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    # No published port. Nothing outside this network needs to reach the
+    # database, and an exposed PostgreSQL is the single most reliable way to
+    # lose a self-hosted installation.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eim -d eim"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    security_opt: ["no-new-privileges:true"]
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
+  # One shot. Applies forward migrations, then exits. Web and worker wait for it
+  # to exit successfully, so a failed migration stops a deployment instead of
+  # starting an application against a schema it does not agree with.
+  migrate:
+    <<: *image
+    restart: "no"
+    command: ["node", "migrate/migrate.js"]
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  web:
+    <<: *image
+    command: ["node", "apps/web/server.js"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+    # Loopback only. Point your existing reverse proxy at 127.0.0.1:3000 and
+    # terminate TLS there. An installation without a proxy can use the optional
+    # Caddy profile below instead.
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./data/exports:/data/exports
+      - ./data/uploads:/data/uploads
+
+  worker:
+    <<: *image
+    command: ["node", "worker/index.js"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+    volumes:
+      - ./data/exports:/data/exports
+      - ./data/uploads:/data/uploads
+
+  # Not started by default. `docker compose run --rm backup` takes one, and the
+  # host's own scheduler runs that nightly — see docs/runbooks/backup.md. A
+  # long-lived container whose only job is to sleep until 3am is a process that
+  # can be dead for a month without anybody noticing.
+  backup:
+    <<: *image
+    profiles: ["tools"]
+    restart: "no"
+    entrypoint: ["/bin/bash", "/app/scripts/backup.sh"]
+    depends_on:
+      postgres: { condition: service_healthy }
+    volumes:
+      - ./data:/data
+      - ./workspace/eCommerce-Inventory-Manager/scripts:/app/scripts:ro
+
+  # Optional, for an installation with no reverse proxy of its own.
+  # Start with: docker compose --profile caddy up -d
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["caddy"]
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./data/caddy:/data
+    depends_on:
+      web: { condition: service_started }
+    security_opt: ["no-new-privileges:true"]
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }

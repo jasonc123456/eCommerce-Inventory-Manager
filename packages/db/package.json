@@ -12,7 +12,8 @@
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
-    "migrate": "tsx src/cli/migrate.ts"
+    "migrate": "tsx src/cli/migrate.ts",
+    "build": "esbuild src/cli/migrate.ts --bundle --platform=node --target=node24 --format=esm --packages=external --outfile=dist/migrate.js --sourcemap"
   },
   "dependencies": {
     "@eim/config": "workspace:*",
@@ -26,6 +27,7 @@
     "drizzle-kit": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "esbuild": "0.25.12"
   }
 }

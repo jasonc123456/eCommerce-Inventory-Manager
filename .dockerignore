@@ -1,0 +1,35 @@
+# Everything the production image must not contain (section 23).
+#
+# The first three lines are the ones that matter: a real .env, a real
+# docker-compose.yml, and anything under a data root are files that live outside
+# this repository by design, and a build context that swept them up would bake
+# an installation's secrets into a published image.
+.env
+.env.*
+!.env.example
+docker-compose.yml
+data/
+
+# Build output and caches. Rebuilt inside the image; copying them in would ship
+# a host's architecture and a stale build.
+node_modules
+**/node_modules
+.next
+**/.next
+**/.next.build
+**/.next.old
+dist
+**/dist
+coverage
+.pnpm-store
+.devdata
+
+# Repository furniture with no runtime meaning.
+.git
+.github
+.githooks
+.changeset
+docs
+graphify-out
+*.md
+!README.md

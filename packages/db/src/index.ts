@@ -61,6 +61,7 @@ export * from './schema/notifications';
 export * from './schema/deliveries';
 export * from './schema/destinations';
 export * from './schema/retention';
+export * from './schema/backups';
 export * from './schema/listings';
 export * from './schema/shipping';
 export * from './schema/ai';

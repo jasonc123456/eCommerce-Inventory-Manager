@@ -1,4 +1,4 @@
-import { schedulerLeases, workerHeartbeats } from '@eim/db';
+import { backupRuns, schedulerLeases, workerHeartbeats } from '@eim/db';
 import { createTestDatabase, type TestDatabase } from '@eim/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
@@ -22,6 +22,7 @@ beforeAll(async () => {
 beforeEach(async () => {
   await harness.db.delete(workerHeartbeats);
   await harness.db.delete(schedulerLeases);
+  await harness.db.delete(backupRuns);
 });
 
 afterAll(async () => {
@@ -143,6 +144,29 @@ describe('assessHealth', () => {
 
     expect(storage?.status).toBe('degraded');
     expect(storage?.remediation).toContain('readable');
+  });
+
+  it('notices that no backup has ever completed', async () => {
+    // Not a failure. A new installation has never taken a backup and is not
+    // broken; it is new. What it needs is the sentence, not the alarm.
+    const backups = (await assessHealth(ports())).checks.find((check) => check.name === 'backups');
+
+    expect(backups?.status).toBe('degraded');
+    expect(backups?.detail).toBe('no backup has completed yet');
+  });
+
+  it('is content once one has', async () => {
+    await harness.db.insert(backupRuns).values({
+      kind: 'daily',
+      outcome: 'succeeded',
+      completedAt: new Date(),
+      artifactName: 'eim-daily-20260301T030000Z.sql.age',
+      sha256: 'a'.repeat(64),
+    });
+
+    expect(
+      (await assessHealth(ports())).checks.find((check) => check.name === 'backups')?.status,
+    ).toBe('ok');
   });
 
   it('is the worst of its parts', async () => {
