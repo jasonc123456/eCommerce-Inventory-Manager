@@ -29,7 +29,7 @@ import {
 let harness: TestDatabase;
 let secrets: DestinationSecretStore;
 
-const POLICY: UrlPolicy = { allowPrivate: false, allowlist: [] };
+const POLICY: UrlPolicy = { allowPrivate: false, allowInsecure: false, allowlist: [] };
 
 beforeAll(async () => {
   harness = await createTestDatabase();

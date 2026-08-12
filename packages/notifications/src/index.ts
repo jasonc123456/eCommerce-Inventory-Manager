@@ -86,3 +86,13 @@ export {
   type ConfigureOutcome,
   type DestinationSecretStore,
 } from './destinations';
+
+export { listRecipients } from './recipients';
+
+export {
+  announceNewAlerts,
+  sendDueReminders,
+  sendPendingEmail,
+  type SweepPorts,
+  type SweepResult,
+} from './sweep';

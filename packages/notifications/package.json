@@ -18,6 +18,7 @@
     "@eim/authz": "workspace:*",
     "@eim/crypto": "workspace:*",
     "@eim/db": "workspace:*",
+    "@eim/mail": "workspace:*",
     "@eim/providers": "workspace:*",
     "drizzle-orm": "catalog:"
   },

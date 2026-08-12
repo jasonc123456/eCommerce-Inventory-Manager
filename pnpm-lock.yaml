@@ -671,6 +671,9 @@ importers:
       '@eim/db':
         specifier: workspace:*
         version: link:../db
+      '@eim/mail':
+        specifier: workspace:*
+        version: link:../mail
       '@eim/providers':
         specifier: workspace:*
         version: link:../providers
