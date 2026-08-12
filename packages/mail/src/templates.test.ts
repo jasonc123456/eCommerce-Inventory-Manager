@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   escapeHtml,
+  renderAlertNotice,
   renderEmailCode,
   renderInvitation,
   renderMagicLink,
@@ -220,6 +221,72 @@ describe('overrides', () => {
     );
 
     expect(message.html).not.toContain('<script>');
+  });
+});
+
+describe('renderAlertNotice', () => {
+  const message = renderAlertNotice({
+    ...brand,
+    businessName: 'Wheelbarrow & Sons',
+    severity: 'Critical',
+    summary: 'an order could not be filled in full: 2 units short',
+    recommendedAction: 'Check the item for uncounted stock, then adjust the order.',
+    occurrences: 3,
+    firstSeenAt: new Date('2026-08-05T12:00:00.000Z'),
+    lastSeenAt: new Date('2026-08-05T14:00:00.000Z'),
+    path: '/alerts',
+  });
+
+  it('names the shop and the severity in the subject', () => {
+    expect(message.subject).toBe(
+      '[Critical] Wheelbarrow & Sons: an order could not be filled in full: 2 units short',
+    );
+  });
+
+  it('keeps the repetition count out of the subject, so an inbox can thread it', () => {
+    // Deduplication does this job in the application; threading does it in a
+    // mail client, and a subject that changed every time would defeat it.
+    expect(message.subject).not.toContain('3 times');
+    expect(message.text).toContain('Seen 3 times');
+  });
+
+  it('says it once when it has only happened once', () => {
+    const first = renderAlertNotice({
+      ...brand,
+      severity: 'Error',
+      summary: 'the store is not answering',
+      occurrences: 1,
+      firstSeenAt: new Date('2026-08-05T12:00:00.000Z'),
+      lastSeenAt: new Date('2026-08-05T12:00:00.000Z'),
+      path: '/alerts',
+    });
+
+    expect(first.text).toContain('First seen 2026-08-05T12:00:00.000Z');
+    expect(first.text).not.toContain('times');
+  });
+
+  it('offers a screen rather than a way to acknowledge from the inbox', () => {
+    // Acknowledgement records who did it. A link would let anybody who could
+    // read the mailbox silence an oversell alert without signing in.
+    const urls = extractUrls(message.text);
+
+    expect(urls).toEqual(['https://inventory.example/alerts']);
+    expect(message.text.toLowerCase()).not.toContain('unsubscribe');
+  });
+
+  it('escapes a shop name that contains markup', () => {
+    const hostile = renderAlertNotice({
+      ...brand,
+      businessName: '<script>alert(1)</script>',
+      severity: 'Warning',
+      summary: 'waiting to go back on sale',
+      occurrences: 1,
+      firstSeenAt: new Date('2026-08-05T12:00:00.000Z'),
+      lastSeenAt: new Date('2026-08-05T12:00:00.000Z'),
+      path: '/alerts',
+    });
+
+    expect(hostile.html).not.toContain('<script>');
   });
 });
 

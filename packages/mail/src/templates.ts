@@ -276,6 +276,83 @@ export function renderSecurityNotice(
   };
 }
 
+export interface AlertNoticeContext extends BrandContext {
+  /** The shop this is about. Absent for an installation problem. */
+  readonly businessName?: string;
+  /** Info, Warning, Error, or Critical, already capitalized for reading. */
+  readonly severity: string;
+  /** One plain sentence. Never a credential, an order, or a buyer. */
+  readonly summary: string;
+  readonly recommendedAction?: string;
+  readonly occurrences: number;
+  readonly firstSeenAt: Date;
+  readonly lastSeenAt: Date;
+  /** Where to go and deal with it. Always a screen, never an action link. */
+  readonly path: string;
+}
+
+/**
+ * The message sent when something needs attention (section 22).
+ *
+ * Three rules, all of them about what is *not* here.
+ *
+ * No acknowledge-by-clicking link. Acknowledgement records who did it and
+ * suppresses reminders, so a link in an inbox would let anybody who could read
+ * the mailbox silence a shop's oversell alert without signing in. The recipient
+ * is pointed at a screen, which requires a session.
+ *
+ * No stock levels, order numbers, or buyer details. The summary is one sentence
+ * written at the call site from what the alert is about; email is the least
+ * controlled place this application's data can end up, and section 13's buyer
+ * data has no business in it at all.
+ *
+ * No unsubscribe link. Section 22 routes by preference, and the preference is a
+ * setting on a screen rather than a token in a message — an unsubscribe link
+ * that could switch off critical inventory alerts is one that eventually does.
+ */
+export function renderAlertNotice(
+  context: AlertNoticeContext,
+  overrides: TemplateOverrides = {},
+): RenderedMessage {
+  const url = `${trimTrailingSlash(context.publicUrl)}${context.path}`;
+  const where = context.businessName ?? context.productName;
+
+  // The repetition count is in the body rather than the subject, because a
+  // subject that changes every time an alert repeats defeats the threading that
+  // makes an inbox readable, and threading is doing the same job here that
+  // deduplication does in the application.
+  const seen =
+    context.occurrences === 1
+      ? `First seen ${context.firstSeenAt.toISOString()}.`
+      : `Seen ${String(context.occurrences)} times since ${context.firstSeenAt.toISOString()}, most recently ${context.lastSeenAt.toISOString()}.`;
+
+  return {
+    subject: `[${context.severity}] ${where}: ${context.summary}`,
+    text: [
+      context.summary,
+      '',
+      seen,
+      ...(context.recommendedAction === undefined
+        ? []
+        : ['', `Suggested: ${context.recommendedAction}`]),
+      '',
+      'Sign in to acknowledge or deal with it:',
+      '',
+      url,
+      ...footerLines(overrides),
+    ].join('\n'),
+    html: wrapHtml(context.productName, [
+      paragraph(context.summary),
+      paragraph(seen),
+      ...(context.recommendedAction === undefined
+        ? []
+        : [paragraph(`Suggested: ${context.recommendedAction}`)]),
+      `<p><a href="${escapeHtml(url)}">${escapeHtml(url)}</a></p>`,
+      ...footerHtml(overrides),
+    ]),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Shared rendering
 // ---------------------------------------------------------------------------

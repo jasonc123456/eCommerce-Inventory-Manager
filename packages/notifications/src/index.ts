@@ -48,3 +48,16 @@ export {
   type NotificationSettingsInput,
   type PreferenceInput,
 } from './preferences';
+
+export {
+  claimDueDeliveries,
+  deliveriesFor,
+  deliveryKey,
+  hasBeenNotified,
+  markDelivered,
+  markFailed,
+  recordDeliveries,
+  recordSuppressed,
+  MAX_DELIVERY_ATTEMPTS,
+  type RecordDeliveriesInput,
+} from './dispatch';
