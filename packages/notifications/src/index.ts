@@ -49,6 +49,8 @@ export {
   type PreferenceInput,
 } from './preferences';
 
+export type { NotificationDelivery } from '@eim/db';
+
 export {
   claimDueDeliveries,
   deliveriesFor,
