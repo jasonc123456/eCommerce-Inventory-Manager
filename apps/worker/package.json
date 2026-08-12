@@ -20,6 +20,7 @@
     "@eim/notifications": "workspace:*",
     "@eim/observability": "workspace:*",
     "@eim/providers": "workspace:*",
+    "@eim/retention": "workspace:*",
     "graphile-worker": "catalog:",
     "pg": "catalog:"
   },

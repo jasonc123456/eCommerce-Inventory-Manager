@@ -5,6 +5,7 @@ import {
   appliedSchemaVersion,
   connect,
   expectedSchemaVersion,
+  businesses,
   pruneHeartbeats,
   recordHeartbeat,
 } from '@eim/db';
@@ -17,6 +18,7 @@ import {
   type SweepPorts,
 } from '@eim/notifications';
 import { createLogger, createMetrics, newCorrelationId, withContext } from '@eim/observability';
+import { sweepBusiness } from '@eim/retention';
 import { makeWorkerUtils, run, type Runner, type WorkerUtils } from 'graphile-worker';
 
 import { createScheduler } from './scheduler';
@@ -36,6 +38,8 @@ import { createTaskList } from './tasks/index';
  */
 
 const HEARTBEAT_INTERVAL_MS = 15_000;
+/** Section 22's retention is a daily concern, not a per-tick one. */
+const RETENTION_INTERVAL_MS = 24 * 60 * 60_000;
 const HEARTBEAT_RETENTION_MS = 10 * 60_000;
 
 async function main(): Promise<void> {
@@ -77,6 +81,10 @@ async function main(): Promise<void> {
   }
 
   metrics.schemaVersion.set(applied);
+
+  // Epoch, so the first tick after a restart sweeps. An installation restarted
+  // daily would otherwise never reach the interval.
+  let lastRetentionSweepAt = 0;
 
   const utils: WorkerUtils = await makeWorkerUtils({ pgPool: pool });
   await utils.migrate();
@@ -157,6 +165,28 @@ async function main(): Promise<void> {
       await announceNewAlerts(sweepPorts);
       await sendDueReminders(sweepPorts);
       await sendPendingEmail(sweepPorts);
+
+      // Retention, once a day rather than every tick. Deleting is expensive and
+      // nothing here is urgent: a row that is one day past its window is not a
+      // problem, and a sweep that ran every thirty seconds would spend the
+      // installation's I/O budget proving there was nothing to do.
+      if (Date.now() - lastRetentionSweepAt >= RETENTION_INTERVAL_MS) {
+        lastRetentionSweepAt = Date.now();
+
+        const shops = await db.select({ id: businesses.id }).from(businesses);
+
+        for (const shop of shops) {
+          const outcomes = await sweepBusiness(db, shop.id);
+          const removed = outcomes.reduce((total, outcome) => total + outcome.rowsDeleted, 0);
+
+          if (removed > 0) {
+            logger.info(
+              { event: 'retention_swept', businessId: shop.id, count: removed },
+              'retention removed rows past their window',
+            );
+          }
+        }
+      }
     },
   });
 

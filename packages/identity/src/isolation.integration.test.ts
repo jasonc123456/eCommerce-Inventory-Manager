@@ -177,7 +177,13 @@ describe('the schema refuses cross-business rows', () => {
       ),
     );
 
-    expect(reason).toMatch(/location_balances_item_fkey/);
+    // Either name is a pass, and that is not laxity. Two composite foreign keys
+    // guard this row — 0001's (business_id, canonical_item_id) and 0012's
+    // (business_id, canonical_item_id, item_is_kit) — and both refuse a
+    // cross-business item. PostgreSQL reports whichever it evaluated first,
+    // which is not a documented order, so naming one made the test depend on
+    // something no rule promises.
+    expect(reason).toMatch(/location_balances_item(_kind)?_fkey/u);
   });
 });
 
