@@ -1,0 +1,6 @@
+Kept so the directory exists.
+
+Next.js `output: standalone` does not copy `public/` into the standalone tree —
+the Dockerfile does, explicitly. A missing directory therefore fails the image
+build rather than silently shipping without static assets, which is the right
+way round but only if the path is here to be copied.

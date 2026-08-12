@@ -109,6 +109,6 @@ jobs:
         run: |
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
-            aquasec/trivy:0.68.0 \
+            aquasec/trivy:0.73.0@sha256:7cced7cae583819fc7806d4cbc0dbbc7cad18b99f7d3e235192e6da8c091045c \
             image --scanners vuln --severity HIGH,CRITICAL \
             --ignore-unfixed --exit-code 1 --no-progress eim:scan

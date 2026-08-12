@@ -226,6 +226,11 @@ export default tseslint.config(
       // suggestion exists and that no order table is reachable from the code
       // that decides what leaves the building.
       'packages/ai/src/acceptance.integration.test.ts',
+      // The accessibility audit, which reads every screen's source to check the
+      // properties a per-element linter cannot see — whether a page names
+      // itself with a heading, whether a status is more than a colour. The
+      // paths it reads are the ones it just found by walking the app directory.
+      'apps/web/src/accessibility.test.ts',
     ],
     rules: {
       'no-restricted-properties': 'off',

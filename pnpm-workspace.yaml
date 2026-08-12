@@ -16,6 +16,29 @@ allowBuilds:
   # images at build time and falls back to a much slower path without it.
   sharp: true
 
+# Forced versions for transitive dependencies with published advisories
+# (section 24: "dependency intake checks ... before merge/release").
+#
+# An override is the honest remediation for a vulnerable package three levels
+# down that its parent has not yet bumped: it fixes the tree rather than
+# silencing the scanner. Each entry is a floor, not a pin, so the ordinary
+# grouped Dependabot update still moves them forward — and each is removed once
+# the direct dependency ships a version that resolves above it on its own.
+overrides:
+  # GHSA-r28c-9q8g-f849. Reached through next; a parsing issue in a package that
+  # processes stylesheets at build time.
+  "postcss@<8.5.18": ">=8.5.18"
+  # GHSA-2v37-7h3g-55p8. Reached through vite, which reaches it through postcss,
+  # so this one resolves alongside the entry above on most trees. Kept explicit
+  # because "resolves on most trees" is not a guarantee.
+  "nanoid@<3.3.17": ">=3.3.17"
+  # GHSA-f88m-g3jw-g9cj. libvips issues inherited by sharp, which Next.js uses
+  # to optimize images at build time. Not on any request path in this
+  # application — nothing here processes an uploaded image — but a build-time
+  # dependency that decodes untrusted bytes is still a dependency that decodes
+  # untrusted bytes.
+  "sharp@<0.35.0": ">=0.35.0"
+
 # Single source of truth for third-party versions across the workspace.
 # Packages reference these with "catalog:" so a core runtime version can never
 # be duplicated by accident (D-114, section 26).

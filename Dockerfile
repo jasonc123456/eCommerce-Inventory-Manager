@@ -11,8 +11,8 @@
 #
 # The runtime stage carries no source, no package manager, and no build
 # toolchain. What it has is the standalone Next.js server, the bundled worker,
-# the migration SQL, and the two binaries an operator needs for the parts of
-# section 23 that happen outside the application: `pg_dump`/`psql`, and `age`.
+# the migration SQL, and `age` — the one binary the parts of section 23 that
+# happen outside the application need from this image.
 #
 # It runs as a non-root user with a fixed uid and gid. Section 23 pins
 # PostgreSQL's `user:` to the deployment administrator's ids so that everything
@@ -70,7 +70,6 @@ COPY packages/review/package.json packages/review/
 COPY packages/shipping/package.json packages/shipping/
 COPY packages/sync/package.json packages/sync/
 COPY packages/testing/package.json packages/testing/
-COPY packages/ui/package.json packages/ui/
 
 RUN pnpm install --frozen-lockfile
 
@@ -104,13 +103,17 @@ ARG APP_VERSION=0.0.0-dev
 
 # `age` for backup encryption (D-143: the private key lives off this host, so
 # the image needs only the public half and the ability to encrypt).
-# `postgresql-client` for the logical dumps and restores section 23 makes the
-# supported portable path.
+#
+# Deliberately no postgresql-client. Debian's is a major version behind the
+# PostgreSQL 18 this application runs against, and pg_dump refuses to dump a
+# server newer than itself — so shipping it would put a tool in the image that
+# fails at exactly the moment somebody reaches for it. The dumps and restores in
+# scripts/backup.sh and scripts/restore.sh run inside the postgres container,
+# which has the matching client by construction.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         age \
         ca-certificates \
-        postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # The base image ships node:1000. Reuse it when the ids match, and create a
@@ -120,6 +123,18 @@ RUN if [ "${APP_UID}" != "1000" ] || [ "${APP_GID}" != "1000" ]; then \
       if ! getent group "${APP_GID}" >/dev/null; then groupadd -g "${APP_GID}" eim; fi; \
       useradd -m -u "${APP_UID}" -g "${APP_GID}" -s /usr/sbin/nologin eim; \
     fi
+
+# The base image ships npm and corepack. Nothing in this stage uses either: the
+# server and the worker are started with `node` directly, and there is nothing
+# to install at run time.
+#
+# Removing them is not tidiness. npm carries its own vendored dependency tree —
+# tar, undici, ip-address, brace-expansion — and every advisory against any of
+# them is an advisory against this image, reported by every scanner, for code
+# that never executes here. Deleting the package manager is also what makes the
+# claim at the top of this file true rather than aspirational.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+    /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
