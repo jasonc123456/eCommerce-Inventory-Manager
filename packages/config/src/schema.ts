@@ -88,6 +88,22 @@ export const configSchema = z.object({
   EIM_MAGIC_LINK_TOKEN_CARRIER: z.enum(['fragment', 'query']).default('fragment'),
 
   EIM_LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).default('info'),
+
+  /**
+   * The credential for the metrics endpoint (section 22).
+   *
+   * Unset means the endpoint does not exist rather than that it is open. A
+   * scrape reveals queue depth, provider error rates, and how many businesses
+   * an installation has, which is not secret exactly but is more than a
+   * stranger should be able to ask for; and an endpoint that is open by default
+   * is an endpoint somebody forgets to close.
+   *
+   * A minimum length, because a metrics token is compared against whatever
+   * arrives in a header and a short one is a token somebody can guess before
+   * the rate limiter notices.
+   */
+  EIM_METRICS_TOKEN: z.string().min(24).optional(),
+
   EIM_APP_VERSION: optionalString,
 });
 

@@ -218,6 +218,13 @@ export const FIELD_METADATA: Readonly<Record<ConfigKey, FieldMeta>> = {
     example: 'info',
     requiredInProduction: false,
   },
+  EIM_METRICS_TOKEN: {
+    description:
+      'Bearer token for the Prometheus metrics endpoint (section 22). Unset means the endpoint does not exist: metrics describe an installation in enough detail to be worth a credential, and an endpoint that is open by default is one somebody forgets to close.',
+    sensitivity: 'secret',
+    example: 'CHANGE_ME_generate_with_openssl_rand_base64_36',
+    requiredInProduction: false,
+  },
   EIM_APP_VERSION: {
     description:
       'Build identifier, stamped on every log line, metric, and scheduler lease. Set by the container image so a mixed-version rollout is visible.',
@@ -264,6 +271,7 @@ export const FIELD_ORDER: readonly ConfigKey[] = [
   'EIM_PRIVATE_HOST_ALLOWLIST',
   'EIM_MAGIC_LINK_TOKEN_CARRIER',
   'EIM_LOG_LEVEL',
+  'EIM_METRICS_TOKEN',
   'EIM_APP_VERSION',
 ];
 
