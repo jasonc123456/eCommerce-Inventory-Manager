@@ -662,6 +662,9 @@ importers:
       '@eim/audit':
         specifier: workspace:*
         version: link:../audit
+      '@eim/authz':
+        specifier: workspace:*
+        version: link:../authz
       '@eim/db':
         specifier: workspace:*
         version: link:../db
