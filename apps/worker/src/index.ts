@@ -8,6 +8,14 @@ import {
   pruneHeartbeats,
   recordHeartbeat,
 } from '@eim/db';
+import { assessHealth, watchInstallation } from '@eim/health';
+import { createMailer } from '@eim/mail';
+import {
+  announceNewAlerts,
+  sendDueReminders,
+  sendPendingEmail,
+  type SweepPorts,
+} from '@eim/notifications';
 import { createLogger, createMetrics, newCorrelationId, withContext } from '@eim/observability';
 import { makeWorkerUtils, run, type Runner, type WorkerUtils } from 'graphile-worker';
 
@@ -82,6 +90,25 @@ async function main(): Promise<void> {
     taskList: createTaskList({ logger }),
   });
 
+  // Built once. Section 20 requires a generic SMTP relay, and an installation
+  // that has one has it for the lifetime of the process; reconnecting per
+  // message would put a TLS handshake in front of every alert.
+  const mailer = createMailer({
+    host: config.EIM_SMTP_HOST,
+    port: config.EIM_SMTP_PORT,
+    user: config.EIM_SMTP_USER,
+    password: config.EIM_SMTP_PASSWORD,
+    fromAddress: config.EIM_MAIL_FROM_ADDRESS,
+    fromName: config.EIM_MAIL_FROM_NAME,
+  });
+
+  const sweepPorts: SweepPorts = {
+    db,
+    mailer,
+    productName: config.EIM_MAIL_FROM_NAME,
+    publicUrl: config.EIM_PUBLIC_URL,
+  };
+
   const scheduler = createScheduler({
     db,
     logger,
@@ -106,6 +133,30 @@ async function main(): Promise<void> {
       metrics.queueOldestAgeSeconds.set({ queue: 'default' }, Math.max(0, oldest?.oldest ?? 0));
 
       await pruneHeartbeats(db, HEARTBEAT_RETENTION_MS);
+
+      // Section 22's installation watch. Read the machine, then file or
+      // withdraw what the reading says — the withdrawal is why this runs every
+      // tick rather than only when something breaks: an alert may be resolved
+      // "only when a fresh check proves recovery", and this is that check.
+      const health = await assessHealth({
+        db,
+        pool,
+        ...(appVersion === undefined ? {} : { appVersion }),
+        ...(config.EIM_DATA_ROOT === undefined ? {} : { dataRoot: config.EIM_DATA_ROOT }),
+        verifyMail: async () => {
+          const outcome = await mailer.verify();
+          return outcome.delivered ? { ok: true } : { ok: false, detail: outcome.failure.summary };
+        },
+      });
+
+      await watchInstallation(db, health);
+
+      // Then tell somebody. Announce and remind decide; send transmits. Keeping
+      // them apart is what makes a stuck relay a queue of pending rows rather
+      // than a reason alerts stop being raised at all.
+      await announceNewAlerts(sweepPorts);
+      await sendDueReminders(sweepPorts);
+      await sendPendingEmail(sweepPorts);
     },
   });
 

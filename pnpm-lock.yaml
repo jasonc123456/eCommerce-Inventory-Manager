@@ -303,6 +303,15 @@ importers:
       '@eim/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@eim/health':
+        specifier: workspace:*
+        version: link:../../packages/health
+      '@eim/mail':
+        specifier: workspace:*
+        version: link:../../packages/mail
+      '@eim/notifications':
+        specifier: workspace:*
+        version: link:../../packages/notifications
       '@eim/observability':
         specifier: workspace:*
         version: link:../../packages/observability

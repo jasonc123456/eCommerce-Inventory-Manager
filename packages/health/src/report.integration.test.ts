@@ -45,6 +45,7 @@ describe('assessHealth', () => {
       'queue',
       'storage',
       'backups',
+      'smtp',
       'versions',
     ]);
   });

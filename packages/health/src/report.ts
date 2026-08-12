@@ -56,6 +56,14 @@ export interface HealthPorts {
   readonly dataRoot?: string;
   /** The build this process is running, for the version check. */
   readonly appVersion?: string;
+  /**
+   * Proves the mail transport is usable, without sending anything.
+   *
+   * A port rather than a mailer, because building one needs credentials this
+   * package has no business holding, and because an installation with no relay
+   * configured has nothing to verify rather than a broken one.
+   */
+  readonly verifyMail?: () => Promise<{ readonly ok: boolean; readonly detail?: string }>;
   /** Growth per day, when something has been measuring it. */
   readonly dailyGrowthBytes?: number;
   /** Whether growth-heavy work is currently paused, for the hysteresis. */
@@ -75,6 +83,7 @@ export async function assessHealth(ports: HealthPorts): Promise<HealthReport> {
     await queueCheck(ports),
     await storageCheck(ports),
     await backupCheck(ports, now),
+    await mailCheck(ports),
     await versionCheck(ports),
   ];
 
@@ -324,6 +333,40 @@ async function backupCheck(ports: HealthPorts, now: Date): Promise<HealthCheck> 
     // The table arrives with the backup tooling. Until then this is not a
     // failure, it is a feature that has not been installed.
     return { name: 'backups', status: 'degraded', detail: 'backup history is not recorded yet' };
+  }
+}
+
+/**
+ * Whether mail can leave the building (sections 20, 22).
+ *
+ * Verified rather than sent. Section 22 lists SMTP on the health surface, and
+ * the useful question is whether the relay would accept a message — asking it
+ * by sending one would put a test message in somebody's inbox every time an
+ * administrator opened this screen.
+ */
+async function mailCheck(ports: HealthPorts): Promise<HealthCheck> {
+  const verify = ports.verifyMail;
+
+  if (verify === undefined) {
+    return { name: 'smtp', status: 'ok', detail: 'no relay is configured to check' };
+  }
+
+  try {
+    const outcome = await verify();
+
+    return outcome.ok
+      ? { name: 'smtp', status: 'ok', detail: 'the relay accepted a connection' }
+      : {
+          name: 'smtp',
+          status: 'failing',
+          // The port's own short summary, never the driver's error, which
+          // quotes the envelope and sometimes the credentials.
+          detail: outcome.detail ?? 'the relay refused',
+          remediation:
+            'Sign-in links and alerts cannot be delivered. Check the SMTP settings in .env.',
+        };
+  } catch {
+    return { name: 'smtp', status: 'failing', detail: 'the relay could not be reached' };
   }
 }
 

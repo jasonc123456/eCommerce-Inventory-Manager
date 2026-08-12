@@ -26,3 +26,5 @@ export {
 } from './policy';
 
 export { assessHealth, readDisk, type HealthPorts, type HealthReport } from './report';
+
+export { watchInstallation, type WatchResult } from './watch';
