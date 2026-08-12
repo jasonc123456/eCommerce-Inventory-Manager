@@ -60,3 +60,7 @@ uploads/
 
 # Knowledge-graph output from the graphify tool. Derived from the tree; not part of it.
 graphify-out/
+
+# Written by the security workflow. A snapshot of advisories is a report, not
+# a source file, and it goes stale the day after it is written.
+audit.json

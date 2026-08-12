@@ -3,10 +3,11 @@
 Self-hosted inventory synchronization between eBay and WooCommerce, built around
 a single canonical stock ledger that both channels project from.
 
-> **Status: milestones M0–M7 delivered.** Foundations, identity and tenancy,
+> **Status: milestones M0–M8 delivered.** Foundations, identity and tenancy,
 > read-only eBay and WooCommerce integration, the inventory model, the
-> synchronization core, reviewed listing operations, shipping, and optional AI
-> assistance are built and tested. Two capabilities are deliberately switched off
+> synchronization core, reviewed listing operations, shipping, optional AI
+> assistance, and the operations tier — health, alerts, retention, backups,
+> upgrades, and a signed multi-architecture image — are built and tested. Two capabilities are deliberately switched off
 > pending external verification — see [Not yet usable](#not-yet-usable) — and the
 > pilot has not run, so this is not yet a finished version 1.
 
@@ -94,7 +95,8 @@ cd eCommerce-Inventory-Manager
 prefix if you have Node 24 and pnpm 11 natively.
 
 The interface lives at `/inventory`, `/mappings`, `/operations` (drafts, prices,
-and everything else awaiting a decision), `/shipping`, `/connections`, `/ai`, and
+and everything else awaiting a decision), `/shipping`, `/alerts`, `/health`,
+`/connections`, `/ai`, and
 `/members`.
 
 To run the web tier:
@@ -160,6 +162,9 @@ packages/
   review/       The confirmation gate: propose, confirm, execute exactly once.
   listings/     Drafts, publication, one-time prices, restock, order copy.
   shipping/     Packages, rates, confirmed label purchase, voids, tracking.
+  notifications/ Alert lifecycle, routing, delivery, and outbound destinations.
+  health/       What is wrong with the installation, and what to do about it.
+  retention/    How long each class of data is kept, and the sweep that enforces it.
   ai/           Optional suggestions: validated output, protected facts, budgets.
   ui/           Shared interface primitives.
   testing/      Test harnesses. Never a runtime dependency.
@@ -180,16 +185,17 @@ confirm, or move stock.
 
 ## What is built
 
-| Milestone             | Delivers                                                                                                                     | Proven by                                                       |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| M0 Foundations        | Workspace, schema, migration runner, leased worker, quality rails, ADRs                                                      | Constraint suite against real PostgreSQL 18                     |
-| M1 Identity           | Sign-in links and codes, passkeys, TOTP, sessions, businesses, the permission catalogue, audit trail                         | `packages/identity` suites                                      |
-| M2 Integrations       | eBay and WooCommerce connections, catalog import, webhooks, health, quotas — all read-only                                   | `packages/integrations/src/acceptance.integration.test.ts`      |
-| M3 Inventory          | Canonical ledger, locations, reservations, safety stock, channel caps, kits, mappings                                        | `packages/inventory` plus the `packages/domain` property suites |
-| M4 Synchronization    | Order pipeline, projection to channels, cadence, reconciliation, conflicts, alerts                                           | `packages/sync/src/acceptance.integration.test.ts`              |
-| M5 Listing operations | Drafts and two-stage publication with fees, one-time price copies, restock-to-live, the optional order copy                  | `packages/listings/src/acceptance.integration.test.ts`          |
-| M6 Shipping           | Packages from unshipped lines, rate comparison, confirmed label purchase, voids, label documents, tracking propagation       | `packages/shipping/src/acceptance.integration.test.ts`          |
-| M7 Optional AI        | OpenAI-compatible and Ollama endpoints, draft/kit/mapping suggestions, protected facts, budgets, privacy preview, provenance | `packages/ai/src/acceptance.integration.test.ts`                |
+| Milestone             | Delivers                                                                                                                              | Proven by                                                       |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| M0 Foundations        | Workspace, schema, migration runner, leased worker, quality rails, ADRs                                                               | Constraint suite against real PostgreSQL 18                     |
+| M1 Identity           | Sign-in links and codes, passkeys, TOTP, sessions, businesses, the permission catalogue, audit trail                                  | `packages/identity` suites                                      |
+| M2 Integrations       | eBay and WooCommerce connections, catalog import, webhooks, health, quotas — all read-only                                            | `packages/integrations/src/acceptance.integration.test.ts`      |
+| M3 Inventory          | Canonical ledger, locations, reservations, safety stock, channel caps, kits, mappings                                                 | `packages/inventory` plus the `packages/domain` property suites |
+| M4 Synchronization    | Order pipeline, projection to channels, cadence, reconciliation, conflicts, alerts                                                    | `packages/sync/src/acceptance.integration.test.ts`              |
+| M5 Listing operations | Drafts and two-stage publication with fees, one-time price copies, restock-to-live, the optional order copy                           | `packages/listings/src/acceptance.integration.test.ts`          |
+| M6 Shipping           | Packages from unshipped lines, rate comparison, confirmed label purchase, voids, label documents, tracking propagation                | `packages/shipping/src/acceptance.integration.test.ts`          |
+| M7 Optional AI        | OpenAI-compatible and Ollama endpoints, draft/kit/mapping suggestions, protected facts, budgets, privacy preview, provenance          | `packages/ai/src/acceptance.integration.test.ts`                |
+| M8 Operations         | Alert lifecycle and routing, health and metrics, retention, encrypted backups and restore drills, preflighted upgrades, signed images | `packages/health/src/acceptance.integration.test.ts`            |
 
 Each milestone's exit gate is a test rather than a claim, and each asserts the
 absences as well as the behaviour: no automatic publication path exists, no

@@ -231,6 +231,10 @@ export default tseslint.config(
       // itself with a heading, whether a status is more than a colour. The
       // paths it reads are the ones it just found by walking the app directory.
       'apps/web/src/accessibility.test.ts',
+      // And the M8 exit gate, where several deliverables are files rather than
+      // behaviours: a multi-architecture image is a property of a workflow, and
+      // a runbook is a property of a document.
+      'packages/health/src/acceptance.integration.test.ts',
     ],
     rules: {
       'no-restricted-properties': 'off',

@@ -50,22 +50,30 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      # Everything, for the record.
+      # Everything, for the record. `pnpm audit` exits non-zero whenever it
+      # finds anything at all, so the failure decision is made by the step
+      # below rather than by this one.
       - name: Report every advisory
         run: pnpm audit --json > audit.json || true
 
+      # `metadata.vulnerabilities` is already the per-severity summary, so this
+      # reads it rather than recounting the advisories. An earlier version
+      # parsed the file as one JSON document per line, which is what npm emits
+      # and pnpm does not — it crashed on the opening brace.
       - name: Summarize
         run: |
           node --input-type=module -e "
             import { readFileSync } from 'node:fs';
-            const lines = readFileSync('audit.json', 'utf8').trim().split('\n').filter(Boolean);
-            const found = lines.map((line) => JSON.parse(line));
-            const counted = {};
-            for (const entry of found) {
-              const severity = entry?.value?.severity ?? entry?.severity ?? 'unknown';
-              counted[severity] = (counted[severity] ?? 0) + 1;
-            }
-            console.log('Advisories by severity:', JSON.stringify(counted));
+            const report = JSON.parse(readFileSync('audit.json', 'utf8'));
+            const counts = report.metadata?.vulnerabilities ?? {};
+            const named = Object.entries(counts)
+              .filter(([, total]) => total > 0)
+              .map(([severity, total]) => severity + ': ' + total);
+            console.log(
+              named.length === 0
+                ? 'No advisories.'
+                : 'Advisories — ' + named.join(', '),
+            );
           "
 
       # High and critical fail, because those are the ones with a fix worth
