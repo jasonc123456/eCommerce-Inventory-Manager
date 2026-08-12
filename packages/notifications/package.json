@@ -16,7 +16,9 @@
   "dependencies": {
     "@eim/audit": "workspace:*",
     "@eim/authz": "workspace:*",
+    "@eim/crypto": "workspace:*",
     "@eim/db": "workspace:*",
+    "@eim/providers": "workspace:*",
     "drizzle-orm": "catalog:"
   },
   "devDependencies": {

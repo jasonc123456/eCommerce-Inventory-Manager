@@ -665,9 +665,15 @@ importers:
       '@eim/authz':
         specifier: workspace:*
         version: link:../authz
+      '@eim/crypto':
+        specifier: workspace:*
+        version: link:../crypto
       '@eim/db':
         specifier: workspace:*
         version: link:../db
+      '@eim/providers':
+        specifier: workspace:*
+        version: link:../providers
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.20.3)(pg@8.22.0)

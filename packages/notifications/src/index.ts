@@ -61,3 +61,28 @@ export {
   MAX_DELIVERY_ATTEMPTS,
   type RecordDeliveriesInput,
 } from './dispatch';
+
+export {
+  alertPayload,
+  alertSentence,
+  signPayload,
+  verifySignature,
+  wireRequest,
+  type AlertFacts,
+  type AlertPayload,
+  type WireRequest,
+} from './payloads';
+
+export {
+  configureDestination,
+  createDestinationSecretStore,
+  destinationWants,
+  listDestinations,
+  markDestinationFailing,
+  markDestinationReady,
+  removeDestination,
+  setDestinationEnabled,
+  type ConfigureDestinationInput,
+  type ConfigureOutcome,
+  type DestinationSecretStore,
+} from './destinations';
