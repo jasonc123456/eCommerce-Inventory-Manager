@@ -91,6 +91,15 @@ export default async function ApplicationLayout({ children }: { children: ReactN
           <Link href="/members" className="underline">
             Members
           </Link>
+          {/*
+            Shown to everybody, and the screen itself refuses anybody who does
+            not administer the installation. Hiding the link would mean deciding
+            who may see it in two places, and the one that matters is the one on
+            the server.
+          */}
+          <Link href="/health" className="underline">
+            Health
+          </Link>
           <Link href="/account/sessions" className="underline">
             Devices
           </Link>

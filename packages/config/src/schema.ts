@@ -104,6 +104,16 @@ export const configSchema = z.object({
    */
   EIM_METRICS_TOKEN: z.string().min(24).optional(),
 
+  /**
+   * The volume durable data lives on (section 23's DATA_ROOT).
+   *
+   * Watched for free space rather than discovered, because a process that
+   * measured its own working directory would measure the container filesystem
+   * — which is ephemeral, always roomy, and never the problem. Unset means the
+   * storage check has nothing to watch and says so.
+   */
+  EIM_DATA_ROOT: optionalString,
+
   EIM_APP_VERSION: optionalString,
 });
 

@@ -225,6 +225,13 @@ export const FIELD_METADATA: Readonly<Record<ConfigKey, FieldMeta>> = {
     example: 'CHANGE_ME_generate_with_openssl_rand_base64_36',
     requiredInProduction: false,
   },
+  EIM_DATA_ROOT: {
+    description:
+      'Absolute path of the durable data directory (section 23). Watched for free space; the storage health check has nothing to watch without it.',
+    sensitivity: 'public',
+    example: '/home/jason/deployment/inventory.diygeeks.io/data',
+    requiredInProduction: false,
+  },
   EIM_APP_VERSION: {
     description:
       'Build identifier, stamped on every log line, metric, and scheduler lease. Set by the container image so a mixed-version rollout is visible.',
@@ -272,6 +279,7 @@ export const FIELD_ORDER: readonly ConfigKey[] = [
   'EIM_MAGIC_LINK_TOKEN_CARRIER',
   'EIM_LOG_LEVEL',
   'EIM_METRICS_TOKEN',
+  'EIM_DATA_ROOT',
   'EIM_APP_VERSION',
 ];
 
