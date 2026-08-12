@@ -1,0 +1,114 @@
+# Security tier (sections 19, 24, 26).
+#
+# Two scans that answer different questions, and a schedule, because both
+# answers change without this repository changing. A dependency with no known
+# vulnerability today has one next Tuesday, and a workflow that only ran on push
+# would report the state of the world on the day somebody last edited code.
+#
+# Neither job blocks a merge on a transitive advisory with no fix available.
+# That is deliberate: a gate that cannot be satisfied is a gate people learn to
+# route around, and the routing-around outlives the advisory. What these do is
+# make the state visible and fail on the cases somebody can actually act on.
+
+name: security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Weekly, offset from Dependabot's Tuesday so the two do not report the same
+    # thing twice on the same morning.
+    - cron: "17 6 * * 4"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependencies:
+    name: dependency advisories
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # Everything, for the record.
+      - name: Report every advisory
+        run: pnpm audit --json > audit.json || true
+
+      - name: Summarize
+        run: |
+          node --input-type=module -e "
+            import { readFileSync } from 'node:fs';
+            const lines = readFileSync('audit.json', 'utf8').trim().split('\n').filter(Boolean);
+            const found = lines.map((line) => JSON.parse(line));
+            const counted = {};
+            for (const entry of found) {
+              const severity = entry?.value?.severity ?? entry?.severity ?? 'unknown';
+              counted[severity] = (counted[severity] ?? 0) + 1;
+            }
+            console.log('Advisories by severity:', JSON.stringify(counted));
+          "
+
+      # High and critical fail, because those are the ones with a fix worth
+      # taking today. Moderate and below are reported and left to the weekly
+      # grouped Dependabot pull request, which is where a person reads them.
+      - name: Fail on high or critical
+        run: pnpm audit --audit-level=high
+
+  containers:
+    name: image vulnerabilities
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    # Only where the base image or the manifests changed. Scanning an unchanged
+    # image on every pull request is minutes of runner time to re-learn what the
+    # scheduled run already said.
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'image')
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+
+      # Built locally and not pushed. The question is whether the image this
+      # repository currently produces has known holes, which needs a build and
+      # does not need a registry.
+      - name: Build the image
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: .
+          push: false
+          load: true
+          tags: eim:scan
+          cache-from: type=gha
+
+      - name: Scan it
+        # From the pinned container image rather than a marketplace action, for
+        # the same reason the secret scan is: one fewer piece of third-party
+        # workflow code with access to this repository.
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:0.68.0 \
+            image --scanners vuln --severity HIGH,CRITICAL \
+            --ignore-unfixed --exit-code 1 --no-progress eim:scan

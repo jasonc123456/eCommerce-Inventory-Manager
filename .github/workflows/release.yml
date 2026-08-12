@@ -1,0 +1,270 @@
+# Release tier (sections 23, 24).
+#
+# Builds and publishes the multi-architecture application image, its SBOM, its
+# checksums, and its provenance attestation, then signs the image. Section 24
+# asks for exactly that list: "sign Git tags and container images, publish
+# SBOM/checksums/provenance, and include database migration, compatibility,
+# backup, upgrade, and rollback notes".
+#
+# It runs only on a pushed tag or a deliberate dispatch. There is no path from a
+# merge to a published image, which is section 23's "never make a mutable branch
+# or an unpinned latest image the documented production upgrade target" applied
+# to the thing that produces them.
+#
+# Four decisions worth stating.
+#
+# The tests run again here, against the tag. A release built from a commit whose
+# CI passed a week ago on a different dependency tree is a release nobody has
+# actually tested; `--frozen-lockfile` makes the tree identical, and re-running
+# is cheap next to shipping a broken one.
+#
+# The image is signed keylessly with Sigstore. There is no long-lived private
+# key to store in a repository secret, and the certificate records which
+# workflow, at which commit, produced the image — which is a stronger claim than
+# "somebody with the key said so".
+#
+# The digest is what everything else refers to. The tags exist for people; the
+# digest is what the release notes pin, what the SBOM describes, and what an
+# operator puts in their Compose file.
+#
+# `latest` is published as a convenience and is never the documented upgrade
+# target. Section 23 is explicit, and so is the Compose template.
+
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to build, without the leading v"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  verify:
+    name: verify the tag
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Format, lint, types
+        run: pnpm format:check && pnpm lint && pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      # The migration files and the constant the readiness check reads must
+      # agree. Shipping a release where they do not means every deployment of it
+      # reports unready for a reason that is not true.
+      - name: Schema version is honest
+        run: pnpm vitest run --project unit packages/db/src/schema-version.test.ts
+
+  publish:
+    name: build, sign, and publish
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    permissions:
+      contents: read
+      # Pushing to GHCR, and requesting the OIDC token keyless signing needs.
+      packages: write
+      id-token: write
+      attestations: write
+
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # QEMU, so the arm64 image is built here rather than needing a second
+      # runner. Section 23 publishes AMD64 and ARM64: a self-hosted project
+      # whose users are on small ARM boxes cannot ship one architecture.
+      - uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
+
+      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+
+      - uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Work out the version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: docker/metadata-action@c1e51972afc2121e065aed6d45c65596fe445f3f # v5.8.0
+        id: meta
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}},value=v${{ steps.version.outputs.value }}
+            type=semver,pattern={{major}}.{{minor}},value=v${{ steps.version.outputs.value }}
+            type=sha,format=long
+            type=raw,value=latest,enable=${{ !contains(steps.version.outputs.value, '-') }}
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            APP_VERSION=${{ steps.version.outputs.value }}
+          # Provenance and an SBOM produced by the builder itself, attached to
+          # the image. An SBOM generated separately describes what somebody
+          # thought was in the image; this one describes what is.
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159 # v3.9.2
+
+      # Keyless. The certificate records the workflow, the repository, and the
+      # commit that produced this image, which is a stronger claim than a
+      # signature from a key somebody stored in a secret.
+      - name: Sign the image
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: cosign sign --yes "${REGISTRY}/${IMAGE_NAME}@${DIGEST}"
+
+      - name: Attest the build
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3.0.0
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      # What an operator actually pins, printed where they can read it without
+      # pulling anything.
+      - name: Summarize
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          {
+            echo "## ${IMAGE_NAME} ${VERSION}"
+            echo
+            echo 'Pin this digest in your Compose file:'
+            echo
+            echo '```'
+            echo "image: ${REGISTRY}/${IMAGE_NAME}@${DIGEST}"
+            echo '```'
+            echo
+            echo 'Verify it before deploying:'
+            echo
+            echo '```'
+            echo "cosign verify ${REGISTRY}/${IMAGE_NAME}@${DIGEST} \\"
+            echo "  --certificate-identity-regexp '^https://github.com/${IMAGE_NAME}/' \\"
+            echo "  --certificate-oidc-issuer https://token.actions.githubusercontent.com"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  notes:
+    name: release notes
+    needs: publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Section 24 requires migration, compatibility, backup, upgrade, and
+      # rollback notes with every release. The schema version is read from the
+      # tag being released rather than typed, because a number somebody typed is
+      # a number somebody can get wrong on the one release where it matters.
+      - name: Assemble the notes
+        id: notes
+        env:
+          DIGEST: ${{ needs.publish.outputs.digest }}
+        run: |
+          SCHEMA="$(grep -oE 'EXPECTED_SCHEMA_VERSION = [0-9]+' packages/db/src/schema-version.ts | grep -oE '[0-9]+')"
+          MIGRATIONS="$(ls packages/db/migrations/*.sql | tail -5 | xargs -n1 basename | sed 's/^/- /')"
+
+          cat > notes.md <<EOF
+          ## Upgrading
+
+          \`\`\`
+          ./scripts/upgrade.sh --to ${REGISTRY}/${IMAGE_NAME}@${DIGEST}
+          \`\`\`
+
+          The script takes a verified pre-upgrade backup, applies migrations,
+          restarts, and waits for readiness. Roll back with
+          \`./scripts/upgrade.sh --rollback\`.
+
+          ## Database
+
+          This release expects schema version **${SCHEMA}**. Most recent migrations:
+
+          ${MIGRATIONS}
+
+          Application code rolls back only while the migrated schema stays
+          compatible. If a migration in this release is not backward compatible,
+          restore the pre-upgrade backup rather than rolling the image back.
+
+          ## Backups
+
+          Take one before upgrading — the upgrade script does this for you, and
+          refuses to continue if \`EIM_BACKUP_PUBLIC_KEY\` is unset.
+
+          ## Verifying this image
+
+          \`\`\`
+          cosign verify ${REGISTRY}/${IMAGE_NAME}@${DIGEST} \\
+            --certificate-identity-regexp '^https://github.com/${IMAGE_NAME}/' \\
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com
+          \`\`\`
+          EOF
+
+      - name: Publish the notes
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
+        with:
+          body_path: notes.md
+          generate_release_notes: true
