@@ -1,126 +1,18 @@
-import { operatorAlerts, type AlertKind, type AlertSeverity, type Database } from '@eim/db';
-import { and, desc, eq, isNull, sql } from 'drizzle-orm';
+import { raiseAlert, type RaisedAlert } from '@eim/notifications';
+import { type Database } from '@eim/db';
 
 /**
- * Telling somebody (sections 11, 12, 22).
+ * The synchronization core's alerts (sections 11, 12, 22).
  *
- * Two rules shape this module, and both are about restraint rather than
- * coverage.
+ * The lifecycle itself — deduplication, acknowledgement, snoozing, resolution,
+ * escalation — lives in `@eim/notifications`, because it is the same lifecycle
+ * for a stalled queue as for an oversold item and a second copy of it would
+ * drift. What lives here is the part that is genuinely about synchronization:
+ * which subject key each kind of problem deduplicates on, and how severe it is.
  *
- * An alert deduplicates on its subject. A mapping that has been blocked for six
- * hours is one thing to deal with, not seven hundred, and a system that sends
- * seven hundred messages has not informed anybody — it has made the real alerts
- * unfindable. The occurrence count and the last-seen time carry how persistent
- * a problem is without spending anybody's attention on repetition.
- *
- * An acknowledgement closes one alert, not a class of them. The next occurrence
- * opens a new row, so acknowledging "the store was down this morning" cannot
- * silence the same store going down again this afternoon. That asymmetry is
- * deliberate: the failure mode of alerting is not too few messages, it is a
- * dismissal that turns out to have been permanent.
+ * That choice of subject key is the load-bearing decision in each function
+ * below, so each one says why it is what it is.
  */
-
-export interface RaiseAlertInput {
-  readonly businessId: string;
-  readonly kind: AlertKind;
-  readonly severity?: AlertSeverity;
-  /** What this is about. A repeat about the same subject finds the same row. */
-  readonly subjectKey: string;
-  readonly summary: string;
-  readonly detail?: Readonly<Record<string, unknown>>;
-  readonly mappingId?: string;
-  readonly canonicalItemId?: string;
-  readonly connectionId?: string;
-  readonly conflictId?: string;
-  readonly jobId?: string;
-}
-
-export interface RaisedAlert {
-  readonly alertId: string;
-  readonly occurrences: number;
-  /** False when this joined an alert somebody has not yet dealt with. */
-  readonly isNew: boolean;
-}
-
-export async function raiseAlert(db: Database, input: RaiseAlertInput): Promise<RaisedAlert> {
-  const rows = await db.execute<{ id: string; occurrences: number; is_new: boolean }>(sql`
-    insert into operator_alerts (
-      business_id, kind, severity, subject_key, summary, detail,
-      mapping_id, canonical_item_id, connection_id, conflict_id, job_id
-    )
-    values (
-      ${input.businessId}::uuid, ${input.kind}, ${input.severity ?? 'warning'},
-      ${input.subjectKey}, ${input.summary},
-      ${JSON.stringify(input.detail ?? {})}::jsonb,
-      ${input.mappingId ?? null}::uuid, ${input.canonicalItemId ?? null}::uuid,
-      ${input.connectionId ?? null}::uuid, ${input.conflictId ?? null}::uuid,
-      ${input.jobId ?? null}::uuid
-    )
-    on conflict (business_id, kind, subject_key) where acknowledged_at is null
-      do update set
-        occurrences  = operator_alerts.occurrences + 1,
-        last_seen_at = now(),
-        -- The newest wording wins. A blocked mapping whose reason changed from
-        -- "rate limited" to "credentials rejected" is still one alert, and the
-        -- reason a person reads should be the current one.
-        summary      = excluded.summary,
-        detail       = excluded.detail,
-        -- Spelled out rather than a greatest() call, which on text compares
-        -- lexically and would let 'warning' outrank 'critical'.
-        severity = case
-          when 'critical' in (operator_alerts.severity, excluded.severity) then 'critical'
-          when 'warning'  in (operator_alerts.severity, excluded.severity) then 'warning'
-          else 'info'
-        end
-    returning id, occurrences, (occurrences = 1) as is_new
-  `);
-
-  const row = rows.rows[0];
-  if (row === undefined) {
-    throw new Error('raising an alert returned nothing');
-  }
-
-  return { alertId: row.id, occurrences: row.occurrences, isNew: row.is_new };
-}
-
-/** Closes one alert. The next occurrence opens a new one. */
-export async function acknowledgeAlert(
-  db: Database,
-  input: {
-    readonly businessId: string;
-    readonly alertId: string;
-    readonly actorUserId: string;
-    readonly note?: string;
-  },
-): Promise<boolean> {
-  const rows = await db
-    .update(operatorAlerts)
-    .set({
-      acknowledgedAt: new Date(),
-      acknowledgedByUserId: input.actorUserId,
-      ...(input.note === undefined ? {} : { acknowledgementNote: input.note }),
-    })
-    .where(
-      and(
-        eq(operatorAlerts.businessId, input.businessId),
-        eq(operatorAlerts.id, input.alertId),
-        isNull(operatorAlerts.acknowledgedAt),
-      ),
-    )
-    .returning({ id: operatorAlerts.id });
-
-  return rows.length === 1;
-}
-
-/** What is currently outstanding, worst first. */
-export async function openAlerts(db: Database, businessId: string, limit = 100) {
-  return db
-    .select()
-    .from(operatorAlerts)
-    .where(and(eq(operatorAlerts.businessId, businessId), isNull(operatorAlerts.acknowledgedAt)))
-    .orderBy(desc(operatorAlerts.severity), desc(operatorAlerts.lastSeenAt))
-    .limit(limit);
-}
 
 /**
  * Section 11's oversell alert.
@@ -146,6 +38,8 @@ export async function alertOversold(
     subjectKey: `item:${input.canonicalItemId}`,
     canonicalItemId: input.canonicalItemId,
     summary: `an order could not be filled in full: ${String(input.shortage)} units short`,
+    recommendedAction:
+      'Check the item for stock that has not been counted, then adjust or cancel the affected order lines.',
     detail: { externalOrderId: input.externalOrderId, shortage: input.shortage },
   });
 }
@@ -166,6 +60,7 @@ export async function alertMappingBlocked(
     subjectKey: `mapping:${input.mappingId}`,
     mappingId: input.mappingId,
     summary: `this channel mapping has stopped synchronizing: ${input.reason}`,
+    recommendedAction: 'Open the mapping and clear the reason it is blocked, then retry the write.',
     detail: { reason: input.reason },
   });
 }
@@ -194,6 +89,7 @@ export async function alertJobDeadLettered(
     subjectKey: `job:${input.jobId}`,
     jobId: input.jobId,
     summary: `${input.kind} gave up after repeated failures: ${input.reason}`,
+    recommendedAction: 'Deal with the cause, then replay the job from the dead-letter list.',
     detail: { jobKind: input.kind, reason: input.reason },
   });
 }
@@ -216,5 +112,6 @@ export async function alertConflict(
     conflictId: input.conflictId,
     ...(input.mappingId === undefined ? {} : { mappingId: input.mappingId }),
     summary: input.summary,
+    recommendedAction: 'Open the conflict and choose which side of the disagreement is correct.',
   });
 }
