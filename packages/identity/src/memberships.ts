@@ -96,6 +96,17 @@ export type CreateBusinessResult =
   | { readonly outcome: 'created'; readonly businessId: string; readonly slug: string }
   | { readonly outcome: 'invalid'; readonly reason: string };
 
+export interface UpdateBusinessInput {
+  readonly businessId: string;
+  readonly name?: string;
+  readonly timezone?: string;
+}
+
+export type UpdateBusinessResult =
+  | { readonly outcome: 'updated' }
+  | { readonly outcome: 'invalid'; readonly reason: string }
+  | { readonly outcome: 'unknown_business' };
+
 export interface MembershipService {
   /**
    * Creates a business and makes somebody its owner.
@@ -106,6 +117,14 @@ export interface MembershipService {
    * row nobody — including an installation administrator — could ever act on.
    */
   createBusiness(db: Database, input: CreateBusinessInput): Promise<CreateBusinessResult>;
+  /**
+   * Renames a business or moves its clock.
+   *
+   * The slug is deliberately not recomputed. It is a stable handle that has
+   * already appeared in URLs and logs, and following the name would break every
+   * link somebody had shared for the sake of tidiness nobody asked for.
+   */
+  updateBusiness(db: Database, input: UpdateBusinessInput): Promise<UpdateBusinessResult>;
   invite(db: Database, input: InviteInput): Promise<InviteResult>;
   cancelInvitation(
     db: MembershipWriter,
@@ -183,6 +202,40 @@ export function createMembershipService(hasher: KeyedHasher): MembershipService 
 
         return { outcome: 'created', businessId: created.id, slug: created.slug };
       });
+    },
+
+    async updateBusiness(db, input) {
+      const values: { name?: string; timezone?: string; updatedAt: Date } = {
+        updatedAt: new Date(),
+      };
+
+      if (input.name !== undefined) {
+        const name = input.name.trim();
+
+        if (name.length === 0 || name.length > 120) {
+          return { outcome: 'invalid', reason: 'give the business a name of up to 120 characters' };
+        }
+
+        values.name = name;
+      }
+
+      if (input.timezone !== undefined) {
+        const timezone = input.timezone.trim();
+
+        if (!isKnownTimezone(timezone)) {
+          return { outcome: 'invalid', reason: `${timezone} is not a time zone this system knows` };
+        }
+
+        values.timezone = timezone;
+      }
+
+      const updated = await db
+        .update(businesses)
+        .set(values)
+        .where(and(eq(businesses.id, input.businessId), isNull(businesses.deletedAt)))
+        .returning({ id: businesses.id });
+
+      return updated.length > 0 ? { outcome: 'updated' } : { outcome: 'unknown_business' };
     },
 
     async invite(db, input) {

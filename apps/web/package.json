@@ -30,6 +30,7 @@
     "@eim/pilot": "workspace:*",
     "@eim/providers": "workspace:*",
     "@eim/ratelimit": "workspace:*",
+    "@eim/retention": "workspace:*",
     "@eim/review": "workspace:*",
     "@eim/shipping": "workspace:*",
     "drizzle-orm": "catalog:",

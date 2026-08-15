@@ -22,6 +22,7 @@ import {
   PilotIcon,
   PlusIcon,
   SecurityIcon,
+  SettingsIcon,
   ShippingIcon,
   SignOutIcon,
 } from './icons';
@@ -93,6 +94,7 @@ const SECTIONS: readonly NavSection[] = [
   {
     heading: 'Settings',
     items: [
+      { href: '/settings', label: 'Business', Icon: SettingsIcon },
       { href: '/members', label: 'Members', Icon: MembersIcon },
       { href: '/ai', label: 'AI', Icon: AiIcon },
       { href: '/account/sessions', label: 'Devices', Icon: DevicesIcon },

@@ -259,6 +259,9 @@ importers:
       '@eim/ratelimit':
         specifier: workspace:*
         version: link:../../packages/ratelimit
+      '@eim/retention':
+        specifier: workspace:*
+        version: link:../../packages/retention
       '@eim/review':
         specifier: workspace:*
         version: link:../../packages/review
