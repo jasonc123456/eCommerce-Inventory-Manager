@@ -84,7 +84,28 @@ export type AcceptInvitationResult =
   /** The signed-in user is not the person the invitation was addressed to. */
   | { readonly outcome: 'wrong_recipient' };
 
+export interface CreateBusinessInput {
+  readonly name: string;
+  /** Becomes the first owner. Section 5: a business always has at least one. */
+  readonly ownerUserId: string;
+  /** IANA zone. Section 9, D-136: quiet hours and the nightly window need one. */
+  readonly timezone?: string;
+}
+
+export type CreateBusinessResult =
+  | { readonly outcome: 'created'; readonly businessId: string; readonly slug: string }
+  | { readonly outcome: 'invalid'; readonly reason: string };
+
 export interface MembershipService {
+  /**
+   * Creates a business and makes somebody its owner.
+   *
+   * Both halves in one transaction, because a business with no owner is
+   * unreachable: section 5 gives owners every permission implicitly and there is
+   * no other way to grant the first one. A partial failure here would leave a
+   * row nobody — including an installation administrator — could ever act on.
+   */
+  createBusiness(db: Database, input: CreateBusinessInput): Promise<CreateBusinessResult>;
   invite(db: Database, input: InviteInput): Promise<InviteResult>;
   cancelInvitation(
     db: MembershipWriter,
@@ -122,6 +143,48 @@ export interface MembershipService {
 
 export function createMembershipService(hasher: KeyedHasher): MembershipService {
   return {
+    async createBusiness(db, input) {
+      const name = input.name.trim();
+
+      if (name.length === 0) {
+        return { outcome: 'invalid', reason: 'give the business a name' };
+      }
+
+      if (name.length > 120) {
+        return { outcome: 'invalid', reason: 'that name is too long' };
+      }
+
+      const timezone = (input.timezone ?? 'UTC').trim();
+
+      if (!isKnownTimezone(timezone)) {
+        return { outcome: 'invalid', reason: `${timezone} is not a time zone this system knows` };
+      }
+
+      return db.transaction(async (tx) => {
+        const slug = await uniqueSlug(tx, name);
+
+        const [created] = await tx
+          .insert(businesses)
+          .values({ name, slug, timezone })
+          .returning({ id: businesses.id, slug: businesses.slug });
+
+        if (created === undefined) {
+          return { outcome: 'invalid', reason: 'the business could not be created' };
+        }
+
+        // Owners hold no grant rows by design — section 5 gives them every
+        // permission implicitly — so this single row is the whole authority.
+        await tx.insert(memberships).values({
+          businessId: created.id,
+          userId: input.ownerUserId,
+          role: 'owner',
+          status: 'active',
+        });
+
+        return { outcome: 'created', businessId: created.id, slug: created.slug };
+      });
+    },
+
     async invite(db, input) {
       const now = input.now ?? new Date();
       const normalized = normalizeEmail(input.email);
@@ -590,6 +653,69 @@ function buildScope(
  * "restricted to nothing": a business that has configured no domains must not
  * find that nobody can be invited.
  */
+/**
+ * Whether the runtime recognizes this zone.
+ *
+ * Asked of the platform rather than checked against a list, because a list
+ * shipped in this repository is a list that is wrong the next time a government
+ * moves a clock. Quiet hours and the nightly reconciliation window are computed
+ * in the shop's zone (D-136), so storing one nothing can resolve would make both
+ * silently wrong rather than loudly broken.
+ */
+export function isKnownTimezone(timezone: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: timezone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * A readable, unique slug for a name somebody typed.
+ *
+ * The slug is a stable handle in URLs and logs, so it is derived once at
+ * creation and never recomputed from a renamed business — a slug that followed
+ * the name would break every link that had already been shared.
+ *
+ * Collisions get a numeric suffix rather than a random one, because the second
+ * "Widgets" being `widgets-2` is something a person can read and predict.
+ */
+async function uniqueSlug(db: MembershipWriter, name: string): Promise<string> {
+  const base =
+    name
+      .toLowerCase()
+      .normalize('NFKD')
+      // Strip accents, then anything that is not a letter, digit, or separator.
+      .replace(/[̀-ͯ]/gu, '')
+      .replace(/[^a-z0-9]+/gu, '-')
+      .replace(/^-+|-+$/gu, '')
+      .slice(0, 48) || 'business';
+
+  const taken = await db
+    .select({ slug: businesses.slug })
+    .from(businesses)
+    .where(sql`${businesses.slug} = ${base} or ${businesses.slug} like ${`${base}-%`}`);
+
+  const used = new Set(taken.map((row) => row.slug));
+
+  if (!used.has(base)) {
+    return base;
+  }
+
+  for (let suffix = 2; suffix < 1000; suffix += 1) {
+    const candidate = `${base}-${String(suffix)}`;
+
+    if (!used.has(candidate)) {
+      return candidate;
+    }
+  }
+
+  // A thousand businesses sharing one name is not a case worth a cleverer
+  // scheme; it is a case worth a name nobody will collide with again.
+  return `${base}-${Date.now().toString(36)}`;
+}
+
 export function domainAllowed(normalizedEmail: string, allowedDomains: readonly string[]): boolean {
   if (allowedDomains.length === 0) {
     return true;

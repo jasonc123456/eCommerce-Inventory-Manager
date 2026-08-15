@@ -113,10 +113,10 @@ export default async function MappingsPage() {
                   </div>
 
                   {mapping.pauseReason === null ? null : (
-                    <p className="text-sm text-amber-700">{mapping.pauseReason}</p>
+                    <p className="text-sm text-[var(--warn)]">{mapping.pauseReason}</p>
                   )}
                   {mapping.inventoryEligible ? null : (
-                    <p className="text-sm text-amber-700">
+                    <p className="text-sm text-[var(--warn)]">
                       {mapping.ineligibleReason ??
                         'this channel entity cannot be synchronized in version 1'}
                     </p>

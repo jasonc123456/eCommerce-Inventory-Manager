@@ -75,24 +75,24 @@ export default async function AlertsPage() {
             )}
 
             <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
-              <dt className="text-slate-500">State</dt>
+              <dt className="text-subtle">State</dt>
               <dd>{state}</dd>
-              <dt className="text-slate-500">First seen</dt>
+              <dt className="text-subtle">First seen</dt>
               <dd>{alert.firstSeenAt.toISOString()}</dd>
-              <dt className="text-slate-500">Last seen</dt>
+              <dt className="text-subtle">Last seen</dt>
               <dd>
                 {alert.lastSeenAt.toISOString()}
                 {alert.occurrences === 1 ? '' : ` (${String(alert.occurrences)} times)`}
               </dd>
               {alert.snoozedUntil === null ? null : (
                 <>
-                  <dt className="text-slate-500">Quiet until</dt>
+                  <dt className="text-subtle">Quiet until</dt>
                   <dd>{alert.snoozedUntil.toISOString()}</dd>
                 </>
               )}
               {alert.acknowledgementNote === null ? null : (
                 <>
-                  <dt className="text-slate-500">Note</dt>
+                  <dt className="text-subtle">Note</dt>
                   <dd>{alert.acknowledgementNote}</dd>
                 </>
               )}
@@ -103,18 +103,18 @@ export default async function AlertsPage() {
                 Who was told, and whether it arrived
               </summary>
               {deliveries.length === 0 ? (
-                <p className="mt-2 text-sm text-slate-500">
+                <p className="mt-2 text-sm text-subtle">
                   Nothing has been sent yet. The worker sends on its next pass.
                 </p>
               ) : (
                 <ul className="mt-2 flex flex-col gap-1 text-sm">
                   {deliveries.map((delivery) => (
                     <li key={delivery.id} className="flex flex-wrap gap-x-3">
-                      <span className="text-slate-500">{delivery.createdAt.toISOString()}</span>
+                      <span className="text-subtle">{delivery.createdAt.toISOString()}</span>
                       <span>{delivery.channel}</span>
                       <span className="font-medium">{delivery.status}</span>
                       {delivery.failureReason === null ? null : (
-                        <span className="text-slate-500">{delivery.failureReason}</span>
+                        <span className="text-subtle">{delivery.failureReason}</span>
                       )}
                     </li>
                   ))}

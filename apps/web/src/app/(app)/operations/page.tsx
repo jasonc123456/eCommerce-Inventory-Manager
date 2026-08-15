@@ -102,15 +102,15 @@ export default async function OperationsPage() {
         <Card key={operation.id} title={label}>
           <div className="flex flex-col gap-4">
             <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
-              <dt className="text-slate-500">Proposed</dt>
+              <dt className="text-subtle">Proposed</dt>
               <dd>{operation.proposedAt.toISOString()}</dd>
-              <dt className="text-slate-500">Expires</dt>
+              <dt className="text-subtle">Expires</dt>
               <dd>{operation.expiresAt.toISOString()}</dd>
-              <dt className="text-slate-500">Values read</dt>
+              <dt className="text-subtle">Values read</dt>
               <dd>{operation.sourceObservedAt.toISOString()}</dd>
-              <dt className="text-slate-500">Needs</dt>
+              <dt className="text-subtle">Needs</dt>
               <dd>{operation.requiredPermission}</dd>
-              <dt className="text-slate-500">State</dt>
+              <dt className="text-subtle">State</dt>
               <dd>{operation.state}</dd>
             </dl>
 
@@ -168,11 +168,11 @@ export default async function OperationsPage() {
           <ul className="flex flex-col gap-2 text-sm">
             {recent.map((operation) => (
               <li key={operation.id} className="flex flex-wrap gap-x-3">
-                <span className="text-slate-500">{operation.proposedAt.toISOString()}</span>
+                <span className="text-subtle">{operation.proposedAt.toISOString()}</span>
                 <span>{OPERATION_LABELS[operation.kind]}</span>
                 <span className="font-medium">{operation.state}</span>
                 {operation.failureSummary === null ? null : (
-                  <span className="text-slate-500">{operation.failureSummary}</span>
+                  <span className="text-subtle">{operation.failureSummary}</span>
                 )}
               </li>
             ))}

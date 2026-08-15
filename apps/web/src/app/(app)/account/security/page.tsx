@@ -36,7 +36,7 @@ export default async function SecurityPage() {
     <main className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
         <h1 className="text-xl font-semibold">Security</h1>
-        <p className="text-sm opacity-70">Passkeys and second factors for {context.user.email}.</p>
+        <p className="text-sm text-muted">Passkeys and second factors for {context.user.email}.</p>
       </header>
 
       {stepUp ? null : (
@@ -48,7 +48,7 @@ export default async function SecurityPage() {
 
       <Card title="Passkeys">
         {credentials.length === 0 ? (
-          <p className="text-sm opacity-80">
+          <p className="text-sm text-muted">
             None registered. A passkey signs you in with the device you already unlock, and cannot
             be phished the way a code can.
           </p>
@@ -58,7 +58,7 @@ export default async function SecurityPage() {
               <li key={credential.id} className="flex flex-wrap items-center gap-3 py-3">
                 <div className="flex min-w-0 flex-1 flex-col">
                   <span className="text-sm font-medium">{credential.name}</span>
-                  <span className="text-xs opacity-70">
+                  <span className="text-xs text-muted">
                     Added {credential.createdAt.toISOString().slice(0, 10)}
                     {credential.backupEligible ? ' · synced across your devices' : ''}
                   </span>
@@ -75,7 +75,7 @@ export default async function SecurityPage() {
             ))}
           </ul>
         )}
-        <p className="text-xs opacity-70">
+        <p className="text-xs text-muted">
           Registering a passkey happens in the browser and needs the WebAuthn ceremony, which the
           registration endpoint drives. Only you can add, rename, or remove your own — an
           administrator cannot replace somebody else&apos;s authenticator.

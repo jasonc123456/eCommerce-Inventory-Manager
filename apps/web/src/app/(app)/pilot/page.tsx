@@ -77,7 +77,7 @@ export default async function PilotPage() {
     <main className="flex flex-col gap-6">
       <header className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-xl font-semibold">Pilot</h1>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-subtle">
           {elapsed === null
             ? 'Not started — nothing has been written to a provider yet'
             : `Day ${String(elapsed)} of ${String(PILOT_DURATION_DAYS)}`}
@@ -103,9 +103,7 @@ export default async function PilotPage() {
               ? ' — every mapping is written'
               : ` — ${String(report.stage.enrolled)} enrolled`}
           </p>
-          {report.stage.note === null ? null : (
-            <p className="text-slate-600 dark:text-slate-400">{report.stage.note}</p>
-          )}
+          {report.stage.note === null ? null : <p className="text-muted">{report.stage.note}</p>}
           {view.mayStage ? (
             <StageForm
               csrf={csrf}
@@ -114,7 +112,7 @@ export default async function PilotPage() {
               cohortLimit={report.stage.cohortLimit}
             />
           ) : (
-            <p className="text-slate-600 dark:text-slate-400">
+            <p className="text-muted">
               Changing the stage needs permission to manage integrations.
             </p>
           )}
@@ -128,12 +126,12 @@ export default async function PilotPage() {
               ? 'Nothing has settled in this window yet.'
               : `${(slo.attainment * 100).toFixed(1)}% of ${String(slo.met + slo.missed)} changes reached their channel within two minutes.`}
           </p>
-          <p className="text-slate-600 dark:text-slate-400">
+          <p className="text-muted">
             {slo.p50Ms === null
               ? 'No latency to report.'
               : `Half arrived within ${formatMs(slo.p50Ms)}, 95% within ${formatMs(slo.p95Ms)}, 99% within ${formatMs(slo.p99Ms)}.`}
           </p>
-          <p className="text-slate-600 dark:text-slate-400">
+          <p className="text-muted">
             {String(slo.pending)} still outstanding, {String(slo.superseded)} overtaken by a newer
             change, {String(slo.outOfScope)} out of scope (imports and reconciliations).
           </p>
@@ -141,7 +139,7 @@ export default async function PilotPage() {
           {/* Beside the figure, never behind a click. A percentage computed
               after discarding whatever missed it will always be 100%. */}
           {slo.excluded === 0 ? (
-            <p className="text-slate-600 dark:text-slate-400">Nothing was excluded.</p>
+            <p className="text-muted">Nothing was excluded.</p>
           ) : (
             <div className="flex flex-col gap-1">
               <p>{String(slo.excluded)} excluded from the figure above, for these reasons:</p>
@@ -168,9 +166,9 @@ export default async function PilotPage() {
                 <span
                   className={
                     criterion.verdict === 'not_met'
-                      ? 'font-semibold text-red-800 dark:text-red-200'
+                      ? 'font-semibold text-[var(--bad)]'
                       : criterion.verdict === 'undemonstrated'
-                        ? 'font-semibold text-amber-800 dark:text-amber-200'
+                        ? 'font-semibold text-[var(--warn)]'
                         : 'font-semibold'
                   }
                 >
@@ -182,7 +180,7 @@ export default async function PilotPage() {
                 </span>
                 <span>{criterion.statement}</span>
               </div>
-              <p className="text-slate-600 dark:text-slate-400">{criterion.detail}</p>
+              <p className="text-muted">{criterion.detail}</p>
               {criterion.nextStep === '' ? null : <p>{criterion.nextStep}</p>}
             </li>
           ))}
@@ -202,11 +200,11 @@ export default async function PilotPage() {
                 <div className="flex flex-wrap items-baseline gap-x-3">
                   <span className="font-semibold">{incident.classification}</span>
                   <span>{incident.kind}</span>
-                  <span className="text-slate-500">{incident.detectedAt.toISOString()}</span>
+                  <span className="text-subtle">{incident.detectedAt.toISOString()}</span>
                 </div>
                 <p>{incident.summary}</p>
                 {incident.finding === null ? null : (
-                  <p className="text-slate-600 dark:text-slate-400">{incident.finding}</p>
+                  <p className="text-muted">{incident.finding}</p>
                 )}
                 {incident.classification === 'unreviewed' && view.mayClassify ? (
                   <ClassifyForm csrf={csrf} businessId={businessId} incidentId={incident.id} />
@@ -236,7 +234,7 @@ export default async function PilotPage() {
                       ? ''
                       : `, and the channel holds ${String(row.observedQuantity)}`}
                   </span>{' '}
-                  <span className="text-slate-500">
+                  <span className="text-subtle">
                     {row.withheldAt.toISOString()} — {row.reason}
                   </span>
                 </li>
@@ -254,7 +252,7 @@ export default async function PilotPage() {
                 <span className={row.enrolled ? 'font-semibold' : ''}>
                   {row.title ?? row.mappingId}
                 </span>
-                <span className="text-slate-500">{row.enrolled ? 'in the pilot' : 'withheld'}</span>
+                <span className="text-subtle">{row.enrolled ? 'in the pilot' : 'withheld'}</span>
                 {view.mayStage ? (
                   <EnrollmentControls
                     csrf={csrf}
@@ -272,7 +270,7 @@ export default async function PilotPage() {
       <Card title="Drills">
         <div className="flex flex-col gap-3 text-sm">
           {view.drills.length === 0 ? (
-            <p className="text-slate-600 dark:text-slate-400">
+            <p className="text-muted">
               None recorded. Two of section 1’s criteria — recovering from a 24-hour outage, and
               installing cleanly from the documentation — leave no trace a query can find, so they
               are recorded by whoever performs them.
@@ -283,8 +281,8 @@ export default async function PilotPage() {
                 <li key={drill.id}>
                   <span className="font-semibold">{drill.succeeded ? 'worked' : 'failed'}</span>{' '}
                   <span>{drill.kind}</span>{' '}
-                  <span className="text-slate-500">{drill.performedAt.toISOString()}</span>
-                  <p className="text-slate-600 dark:text-slate-400">{drill.summary}</p>
+                  <span className="text-subtle">{drill.performedAt.toISOString()}</span>
+                  <p className="text-muted">{drill.summary}</p>
                 </li>
               ))}
             </ul>

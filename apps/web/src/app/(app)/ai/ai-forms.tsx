@@ -77,7 +77,7 @@ export function ConfigurationForm({
         <select
           name="kind"
           defaultValue={values.kind}
-          className="rounded-md border border-black/20 bg-transparent px-3 py-2 text-base dark:border-white/25"
+          className="rounded-md border border-[var(--border-strong)] bg-transparent px-3 py-2 text-base"
         >
           <option value="openai_compatible">OpenAI-compatible endpoint</option>
           <option value="ollama">Ollama</option>
@@ -141,9 +141,9 @@ export function ConfigurationForm({
         </Field>
       </div>
 
-      <fieldset className="flex flex-col gap-2 rounded-md border border-black/10 p-4 dark:border-white/15">
+      <fieldset className="flex flex-col gap-2 rounded-md border border-[var(--border)] p-4">
         <legend className="px-1 text-sm font-medium">Money</legend>
-        <p className="text-xs opacity-70">
+        <p className="text-xs text-muted">
           Only a paid endpoint has any. Enter the rates from your provider&rsquo;s price list; a
           spending limit is only enforceable once they are here, so a limit without them is refused
           rather than displayed.
@@ -254,7 +254,7 @@ export function EndpointControls({
       </div>
 
       {!enabled && !ready ? (
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted">
           Test the endpoint before switching it on. An endpoint that has never answered would offer
           the feature on every screen and fail the first time somebody used it.
         </p>

@@ -57,11 +57,11 @@ export function TotpPanel({
     return (
       <>
         <Card title="Two-factor authentication">
-          <p className="text-sm opacity-80">
+          <p className="text-sm text-muted">
             On. Signing in needs your authenticator as well as your email, and a message to your
             inbox does not count as the second factor.
           </p>
-          <p className="text-sm opacity-80">
+          <p className="text-sm text-muted">
             {remainingRecoveryCodes} recovery {remainingRecoveryCodes === 1 ? 'code' : 'codes'}{' '}
             unused.
           </p>
@@ -106,7 +106,7 @@ export function TotpPanel({
   return (
     <>
       <Card title="Two-factor authentication">
-        <p className="text-sm opacity-80">
+        <p className="text-sm text-muted">
           Off. Adding an authenticator means a stolen inbox is no longer enough to reach your
           account.
         </p>
@@ -115,13 +115,13 @@ export function TotpPanel({
           <form action={activate} className="flex flex-col gap-3">
             <input type="hidden" name={CSRF_FIELD} value={csrf} />
 
-            <p className="text-sm opacity-80">
+            <p className="text-sm text-muted">
               Add this to your authenticator, then enter the code it shows.
             </p>
             <p className="rounded-md bg-black/5 p-3 font-mono text-sm break-all dark:bg-white/10">
               {enrollState.manualEntryKey}
             </p>
-            <p className="text-xs opacity-70">
+            <p className="text-xs text-muted">
               Or open this URI in your authenticator:{' '}
               <span className="font-mono break-all">{enrollState.otpauthUri}</span>
             </p>
@@ -165,7 +165,7 @@ export function TotpPanel({
 function RecoveryCodes({ codes }: { codes: readonly string[] }) {
   return (
     <Card title="Save these recovery codes now">
-      <p className="text-sm opacity-80">
+      <p className="text-sm text-muted">
         Each works once, and this is the only time they are shown. They are the way back in if you
         lose your authenticator.
       </p>

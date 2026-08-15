@@ -1,14 +1,13 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
-import { signOutAction } from '../actions/auth';
-import { switchBusinessAction } from '../actions/account';
+import { AppSidebar, AppTopBar, type BusinessOption } from '../../components/app-sidebar';
 import { csrfToken } from '../../lib/csrf';
-import { CSRF_FIELD } from '../../lib/csrf-field';
 import { identity } from '../../lib/identity';
 import { runtime } from '../../lib/runtime';
 import { currentContext } from '../../lib/session';
+import { switchBusinessAction } from '../actions/account';
+import { signOutAction } from '../actions/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +17,12 @@ export const dynamic = 'force-dynamic';
  * The session is resolved here, once, and every page below inherits the
  * guarantee that there is one. A page that needed to reason about being signed
  * out would be a page that could get it wrong.
+ *
+ * The sidebar is rendered twice — a persistent panel from the medium breakpoint
+ * up, and a drawer below it — with one set of props. That is deliberate
+ * duplication of markup rather than of decisions: both read the same list, the
+ * same active business, and the same actions, so the two cannot drift into
+ * disagreeing about what exists.
  */
 export default async function ApplicationLayout({ children }: { children: ReactNode }) {
   const context = await currentContext();
@@ -27,101 +32,57 @@ export default async function ApplicationLayout({ children }: { children: ReactN
   }
 
   const { db } = runtime();
-  const businesses = await identity().memberships.listBusinessesFor(db, context.user.id);
+  const memberships = await identity().memberships.listBusinessesFor(db, context.user.id);
   const token = csrfToken(context.session);
+
+  const businesses: readonly BusinessOption[] = memberships.map((membership) => ({
+    businessId: membership.businessId,
+    name: membership.name,
+    role: membership.role,
+  }));
 
   const active =
     businesses.find((business) => business.businessId === context.session.activeBusinessId) ??
     businesses[0];
 
+  const sidebar = {
+    businesses,
+    activeBusinessId: active?.businessId ?? null,
+    userEmail: context.user.email,
+    csrf: token,
+    switchAction: switchBusinessAction,
+    signOutAction,
+  };
+
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-4xl flex-col gap-6 p-6">
-      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-black/10 pb-4 dark:border-white/15">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="text-base font-semibold">
-            Inventory Manager
-          </Link>
+    <div className="flex min-h-dvh w-full">
+      {/* WCAG 2.4.1. The sidebar is the first thing in the document and holds
+          fifteen links; without this, reaching the content by keyboard means
+          tabbing past all of them on every page. Visible only when focused, so
+          it costs a pointer user nothing. */}
+      <a
+        href="#main"
+        className="btn-primary sr-only rounded-lg px-3 py-2 text-sm font-medium focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+      >
+        Skip to content
+      </a>
 
-          {businesses.length === 0 ? null : (
-            <form action={switchBusinessAction} className="flex items-center gap-2">
-              <input type="hidden" name={CSRF_FIELD} value={token} />
-              <label htmlFor="business-switcher" className="sr-only">
-                Business
-              </label>
-              {/* Submits on change for a pointer, and the button is there for
-                  keyboard and no-JavaScript use. Section 21 needs both. */}
-              <select
-                id="business-switcher"
-                name="businessId"
-                defaultValue={active?.businessId ?? ''}
-                className="rounded-md border border-black/20 bg-transparent px-2 py-1 text-sm dark:border-white/25"
-              >
-                {businesses.map((business) => (
-                  <option key={business.businessId} value={business.businessId}>
-                    {business.name}
-                  </option>
-                ))}
-              </select>
-              <button type="submit" className="text-sm underline">
-                Switch
-              </button>
-            </form>
-          )}
+      <AppSidebar {...sidebar} />
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <AppTopBar {...sidebar} />
+
+        {/* A target rather than the landmark itself: each page renders its own
+            `<main>`, and two nested ones would be invalid. `tabIndex={-1}` makes
+            this focusable by the skip link without putting it in the tab order. */}
+        <div
+          id="main"
+          tabIndex={-1}
+          className="mx-auto flex w-full max-w-5xl flex-1 flex-col p-4 sm:p-6 lg:p-8"
+        >
+          {children}
         </div>
-
-        <nav className="flex items-center gap-4 text-sm">
-          <Link href="/inventory" className="underline">
-            Inventory
-          </Link>
-          <Link href="/mappings" className="underline">
-            Mappings
-          </Link>
-          <Link href="/operations" className="underline">
-            Drafts and prices
-          </Link>
-          <Link href="/shipping" className="underline">
-            Shipping
-          </Link>
-          <Link href="/alerts" className="underline">
-            Alerts
-          </Link>
-          <Link href="/pilot" className="underline">
-            Pilot
-          </Link>
-          <Link href="/connections" className="underline">
-            Connections
-          </Link>
-          <Link href="/ai" className="underline">
-            AI
-          </Link>
-          <Link href="/members" className="underline">
-            Members
-          </Link>
-          {/*
-            Shown to everybody, and the screen itself refuses anybody who does
-            not administer the installation. Hiding the link would mean deciding
-            who may see it in two places, and the one that matters is the one on
-            the server.
-          */}
-          <Link href="/health" className="underline">
-            Health
-          </Link>
-          <Link href="/account/sessions" className="underline">
-            Devices
-          </Link>
-          <Link href="/account/security" className="underline">
-            Security
-          </Link>
-          <form action={signOutAction}>
-            <input type="hidden" name={CSRF_FIELD} value={token} />
-            <button type="submit" className="underline">
-              Sign out
-            </button>
-          </form>
-        </nav>
-      </header>
-
-      {children}
+      </div>
     </div>
   );
 }

@@ -60,7 +60,7 @@ export default async function HealthPage() {
     <main className="flex flex-col gap-6">
       <header className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-xl font-semibold">System health</h1>
-        <p className="text-sm text-slate-500">Read at {report.observedAt.toISOString()}</p>
+        <p className="text-sm text-subtle">Read at {report.observedAt.toISOString()}</p>
       </header>
 
       <Notice tone={report.status === 'failing' ? 'error' : 'info'}>
@@ -79,19 +79,19 @@ export default async function HealthPage() {
                 <span
                   className={
                     check.status === 'failing'
-                      ? 'font-semibold text-red-800 dark:text-red-200'
+                      ? 'font-semibold text-[var(--bad)]'
                       : check.status === 'degraded'
-                        ? 'font-semibold text-amber-800 dark:text-amber-200'
+                        ? 'font-semibold text-[var(--warn)]'
                         : 'font-semibold'
                   }
                 >
                   {check.name}
                 </span>
-                <span className="text-slate-500">{check.status}</span>
+                <span className="text-subtle">{check.status}</span>
                 {check.detail === undefined ? null : <span>{check.detail}</span>}
               </div>
               {check.remediation === undefined ? null : (
-                <p className="text-slate-600 dark:text-slate-400">{check.remediation}</p>
+                <p className="text-muted">{check.remediation}</p>
               )}
             </li>
           ))}
@@ -111,13 +111,13 @@ export default async function HealthPage() {
                 <div className="flex flex-wrap items-baseline gap-x-3">
                   <span className="font-semibold">{alert.severity}</span>
                   <span>{alert.kind}</span>
-                  <span className="text-slate-500">
+                  <span className="text-subtle">
                     seen {alert.occurrences}×, last {alert.lastSeenAt.toISOString()}
                   </span>
                 </div>
                 <p>{alert.summary}</p>
                 {alert.recommendedAction === null ? null : (
-                  <p className="text-slate-600 dark:text-slate-400">{alert.recommendedAction}</p>
+                  <p className="text-muted">{alert.recommendedAction}</p>
                 )}
               </li>
             ))}

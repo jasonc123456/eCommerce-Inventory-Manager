@@ -142,7 +142,7 @@ export function MappingControls({
           )}
 
           {preview.blockers.length === 0 ? null : (
-            <ul className="flex list-disc flex-col gap-1 pl-5 text-amber-700">
+            <ul className="flex list-disc flex-col gap-1 pl-5 text-[var(--warn)]">
               {preview.blockers.map((blocker) => (
                 <li key={blocker}>{blocker}</li>
               ))}

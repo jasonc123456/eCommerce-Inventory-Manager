@@ -89,7 +89,7 @@ export default async function ConnectionsPage() {
     <main className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
         <h1 className="text-xl font-semibold">Connections</h1>
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted">
           The eBay accounts and WooCommerce stores this business reads from. Nothing on this page
           contacts a provider; use Test to check one now.
         </p>
@@ -97,7 +97,7 @@ export default async function ConnectionsPage() {
 
       {summaries.length === 0 ? (
         <Card title="Nothing connected yet">
-          <p className="text-sm opacity-70">
+          <p className="text-sm text-muted">
             {providers.ebay.length === 0
               ? 'No eBay keyset is configured for this installation, so only WooCommerce stores can be connected. An administrator adds eBay credentials to the environment file.'
               : 'Connect an eBay account or a WooCommerce store to start importing a catalog. Nothing is written to either until a later milestone.'}
@@ -174,7 +174,7 @@ function ConnectionCard({
         </Detail>
 
         {readiness === null ? (
-          <p className="text-sm opacity-70">
+          <p className="text-sm text-muted">
             This connection has not been tested. Testing asks the provider what this account is set
             up to do; it changes nothing.
           </p>
@@ -185,7 +185,7 @@ function ConnectionCard({
               {readiness.available.length === 0 ? 'nothing yet' : readiness.available.join(', ')}
             </p>
             {readiness.blocked.length === 0 ? null : (
-              <ul className="flex flex-col gap-1 text-sm opacity-80">
+              <ul className="flex flex-col gap-1 text-sm text-muted">
                 {readiness.blocked.map((entry) => (
                   <li key={entry.capability}>
                     {entry.capability} — blocked by {entry.because}
@@ -193,7 +193,7 @@ function ConnectionCard({
                 ))}
               </ul>
             )}
-            <ul className="flex flex-col gap-1 text-xs opacity-70">
+            <ul className="flex flex-col gap-1 text-xs text-muted">
               {readiness.checks.map((check) => (
                 <li key={check.name}>
                   {check.status} · {check.name}: {check.summary}
@@ -211,7 +211,7 @@ function ConnectionCard({
         )}
 
         {health.quotas.length === 0 ? null : (
-          <ul className="flex flex-col gap-1 text-xs opacity-70">
+          <ul className="flex flex-col gap-1 text-xs text-muted">
             {health.quotas.map((quota) => (
               <li key={`${quota.apiFamily}-${quota.windowEndsAt.toISOString()}`}>
                 {quota.apiFamily}:{' '}

@@ -18,7 +18,7 @@ export default async function TwoFactorPage() {
     <>
       <header className="flex flex-col gap-1">
         <h1 className="text-xl font-semibold">One more step</h1>
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted">
           Your account has a second factor. Email alone does not sign you in.
         </p>
       </header>

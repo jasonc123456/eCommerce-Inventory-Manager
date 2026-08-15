@@ -38,7 +38,7 @@ export function InviteForm({ csrf, businessId }: { csrf: string; businessId: str
         <select
           name="role"
           defaultValue="viewer"
-          className="rounded-md border border-black/20 bg-transparent px-3 py-2 text-base dark:border-white/25"
+          className="rounded-md border border-[var(--border-strong)] bg-transparent px-3 py-2 text-base"
         >
           <option value="viewer">Viewer</option>
           <option value="operator">Operator</option>

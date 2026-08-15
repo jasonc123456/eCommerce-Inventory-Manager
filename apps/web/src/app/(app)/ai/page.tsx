@@ -80,19 +80,19 @@ export default async function AiPage() {
 
       <Card title="This month">
         <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
-          <dt className="text-slate-500">Suggestions</dt>
+          <dt className="text-subtle">Suggestions</dt>
           <dd>
             {view.usage.requests}
             {provider === null ? null : ` of ${String(provider.monthlyRequestCap)}`}
           </dd>
-          <dt className="text-slate-500">Tokens</dt>
+          <dt className="text-subtle">Tokens</dt>
           <dd>
             {view.usage.tokens}
             {provider === null ? null : ` of ${String(provider.monthlyTokenCap)}`}
           </dd>
           {provider?.monthlyCostCapAmount == null ? null : (
             <>
-              <dt className="text-slate-500">Spent</dt>
+              <dt className="text-subtle">Spent</dt>
               <dd>
                 {view.usage.costAmount ?? '0'} of {provider.monthlyCostCapAmount}{' '}
                 {provider.costCurrency}
@@ -115,22 +115,22 @@ export default async function AiPage() {
       ) : (
         <Card title="The endpoint">
           <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
-            <dt className="text-slate-500">Kind</dt>
+            <dt className="text-subtle">Kind</dt>
             <dd>{provider.kind === 'ollama' ? 'Ollama' : 'OpenAI-compatible'}</dd>
-            <dt className="text-slate-500">Address</dt>
+            <dt className="text-subtle">Address</dt>
             <dd className="break-all">{provider.baseUrl}</dd>
-            <dt className="text-slate-500">Model</dt>
+            <dt className="text-subtle">Model</dt>
             <dd>{provider.model}</dd>
-            <dt className="text-slate-500">State</dt>
+            <dt className="text-subtle">State</dt>
             <dd>
               {provider.enabled ? 'on' : 'off'}, {provider.status}
               {provider.lastFailureSummary === null ? null : (
-                <span className="text-slate-500"> — {provider.lastFailureSummary}</span>
+                <span className="text-subtle"> — {provider.lastFailureSummary}</span>
               )}
             </dd>
-            <dt className="text-slate-500">Photographs</dt>
+            <dt className="text-subtle">Photographs</dt>
             <dd>{provider.imageAnalysisEnabled ? 'may be sent when asked for' : 'never sent'}</dd>
-            <dt className="text-slate-500">Questions kept</dt>
+            <dt className="text-subtle">Questions kept</dt>
             <dd>{provider.retainPrompts ? 'yes, for debugging' : 'no'}</dd>
           </dl>
 
@@ -176,19 +176,17 @@ export default async function AiPage() {
           <ul className="flex flex-col gap-2 text-sm">
             {view.recent.map((suggestion) => (
               <li key={suggestion.id} className="flex flex-wrap gap-x-3">
-                <span className="text-slate-500">{suggestion.requestedAt.toISOString()}</span>
+                <span className="text-subtle">{suggestion.requestedAt.toISOString()}</span>
                 <span>{suggestion.kind.replace(/_/g, ' ')}</span>
                 <span className="font-medium">{suggestion.status}</span>
                 {suggestion.model === null ? null : (
-                  <span className="text-slate-500">{suggestion.model}</span>
+                  <span className="text-subtle">{suggestion.model}</span>
                 )}
                 {suggestion.refusalReason === null ? null : (
-                  <span className="text-slate-500">
-                    {suggestion.refusalReason.replace(/_/g, ' ')}
-                  </span>
+                  <span className="text-subtle">{suggestion.refusalReason.replace(/_/g, ' ')}</span>
                 )}
                 {suggestion.appliedAt === null ? (
-                  <span className="text-slate-500">not used</span>
+                  <span className="text-subtle">not used</span>
                 ) : (
                   <span>accepted by a person</span>
                 )}

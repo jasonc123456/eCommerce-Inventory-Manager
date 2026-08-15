@@ -27,7 +27,7 @@ import {
 
 const IDLE: PilotFormState = { status: 'idle' };
 
-const SELECT_CLASS = 'rounded-md border border-black/15 px-3 py-2 text-sm dark:border-white/20';
+const SELECT_CLASS = 'rounded-md border border-[var(--border)] px-3 py-2 text-sm ';
 
 function Message({ state }: { state: PilotFormState }) {
   if (state.message === undefined) {

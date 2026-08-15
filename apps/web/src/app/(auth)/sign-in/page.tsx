@@ -37,7 +37,7 @@ export default async function SignInPage({
     <>
       <header className="flex flex-col gap-1">
         <h1 className="text-xl font-semibold">Sign in</h1>
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted">
           There is no password. Enter your address and we will send you a way in.
         </p>
       </header>

@@ -31,7 +31,7 @@ export default async function SetupPage({
     <>
       <header className="flex flex-col gap-1">
         <h1 className="text-xl font-semibold">Set up this installation</h1>
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted">
           Claiming this installation needs both the configured administrator address and the
           temporary setup secret from its <code>.env</code>. Neither on its own is enough.
         </p>

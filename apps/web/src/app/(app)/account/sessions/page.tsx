@@ -37,7 +37,7 @@ export default async function SessionsPage() {
     <main className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
         <h1 className="text-xl font-semibold">Devices</h1>
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted">
           Every session that can currently reach your account. Anything you do not recognise should
           be signed out.
         </p>
@@ -54,10 +54,10 @@ export default async function SessionsPage() {
                   <span className="text-sm font-medium">
                     {session.deviceLabel ?? 'Unrecognised device'}
                     {isCurrent ? (
-                      <span className="ml-2 text-xs opacity-70">this device</span>
+                      <span className="ml-2 text-xs text-muted">this device</span>
                     ) : null}
                   </span>
-                  <span className="text-xs opacity-70">
+                  <span className="text-xs text-muted">
                     {/* Section 20 keeps device metadata minimal, and section 19
                         ages precise network evidence out rather than keeping it
                         indefinitely. What is shown is what a user needs to
@@ -84,7 +84,7 @@ export default async function SessionsPage() {
       </Card>
 
       <Card title="Sign out everywhere">
-        <p className="text-sm opacity-80">
+        <p className="text-sm text-muted">
           Ends every session including this one, and revokes every trusted device. Use it if you
           think somebody else has access.
         </p>

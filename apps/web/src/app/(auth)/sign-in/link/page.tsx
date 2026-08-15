@@ -24,7 +24,7 @@ export default async function LinkPage({
     <>
       <header className="flex flex-col gap-1">
         <h1 className="text-xl font-semibold">Confirm sign-in</h1>
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted">
           Press the button to finish signing in on this device. The extra press is what stops a mail
           scanner from using the link before you do.
         </p>
@@ -35,7 +35,7 @@ export default async function LinkPage({
         {...(typeof carried === 'string' ? { carriedToken: carried } : {})}
       />
 
-      <p className="text-sm opacity-70">
+      <p className="text-sm text-muted">
         Did not expect this?{' '}
         <Link href="/sign-in" className="underline">
           Ignore it and start again

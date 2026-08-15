@@ -82,6 +82,106 @@ async function inviteAndAccept(
   return { userId: accepted.userId, membershipId: accepted.membershipId };
 }
 
+describe('creating a business', () => {
+  it('makes the caller its owner in the same transaction', async () => {
+    const ownerId = await createUser();
+
+    const created = await service.createBusiness(harness.db, {
+      name: 'Widgets Ltd',
+      ownerUserId: ownerId,
+    });
+
+    expect(created.outcome).toBe('created');
+
+    if (created.outcome !== 'created') {
+      return;
+    }
+
+    // A business with no owner is unreachable: owners hold every permission
+    // implicitly and there is no other way to grant the first one.
+    const subject = await service.loadSubject(harness.db, created.businessId, ownerId);
+
+    expect(subject?.isOwner).toBe(true);
+    expect(authorize(subject!, 'manage_members').allowed).toBe(true);
+  });
+
+  it('gives it a readable slug and disambiguates a repeated name', async () => {
+    const ownerId = await createUser();
+
+    const first = await service.createBusiness(harness.db, {
+      name: 'Bright & Early Supplies',
+      ownerUserId: ownerId,
+    });
+    const second = await service.createBusiness(harness.db, {
+      name: 'Bright & Early Supplies',
+      ownerUserId: ownerId,
+    });
+
+    expect(first.outcome === 'created' ? first.slug : '').toBe('bright-early-supplies');
+    // A predictable suffix rather than a random one: the second "Widgets" being
+    // `widgets-2` is something a person can read in a URL and guess.
+    expect(second.outcome === 'created' ? second.slug : '').toBe('bright-early-supplies-2');
+  });
+
+  it('refuses a name that is only whitespace', async () => {
+    const ownerId = await createUser();
+
+    const created = await service.createBusiness(harness.db, {
+      name: '   ',
+      ownerUserId: ownerId,
+    });
+
+    expect(created.outcome).toBe('invalid');
+  });
+
+  it('refuses a time zone nothing can resolve', async () => {
+    const ownerId = await createUser();
+
+    // Quiet hours and the nightly window are computed in this zone (D-136), so
+    // storing one the runtime cannot resolve makes both silently wrong rather
+    // than loudly broken.
+    const created = await service.createBusiness(harness.db, {
+      name: 'Elsewhere',
+      ownerUserId: ownerId,
+      timezone: 'Mars/Olympus_Mons',
+    });
+
+    expect(created.outcome).toBe('invalid');
+  });
+
+  it('keeps the zone it was given', async () => {
+    const ownerId = await createUser();
+
+    const created = await service.createBusiness(harness.db, {
+      name: 'Antipodes',
+      ownerUserId: ownerId,
+      timezone: 'Pacific/Auckland',
+    });
+
+    if (created.outcome !== 'created') {
+      throw new Error('expected the business to be created');
+    }
+
+    const [row] = await harness.db
+      .select({ timezone: businesses.timezone })
+      .from(businesses)
+      .where(eq(businesses.id, created.businessId));
+
+    expect(row?.timezone).toBe('Pacific/Auckland');
+  });
+
+  it('shows up in the list the switcher reads', async () => {
+    const ownerId = await createUser();
+
+    await service.createBusiness(harness.db, { name: 'Only One', ownerUserId: ownerId });
+
+    const reachable = await service.listBusinessesFor(harness.db, ownerId);
+
+    expect(reachable.map((entry) => entry.name)).toEqual(['Only One']);
+    expect(reachable[0]?.role).toBe('owner');
+  });
+});
+
 describe('domainAllowed', () => {
   it('permits anything when no restriction is configured', () => {
     // Empty must stay distinguishable from "restricted to nothing", or a

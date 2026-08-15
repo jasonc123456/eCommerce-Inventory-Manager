@@ -80,13 +80,13 @@ export default async function ShippingPage() {
             {accounts.map((account) => (
               <li key={account.id} className="flex flex-wrap gap-x-3">
                 <span className="font-medium">{account.provider}</span>
-                <span className="text-slate-500">{account.environment}</span>
+                <span className="text-subtle">{account.environment}</span>
                 <span>{account.status}</span>
                 {account.accountLabel === null ? null : (
-                  <span className="text-slate-500">{account.accountLabel}</span>
+                  <span className="text-subtle">{account.accountLabel}</span>
                 )}
                 {account.lastFailureSummary === null ? null : (
-                  <span className="text-slate-500">{account.lastFailureSummary}</span>
+                  <span className="text-subtle">{account.lastFailureSummary}</span>
                 )}
               </li>
             ))}
@@ -106,21 +106,21 @@ export default async function ShippingPage() {
         <Card key={view.parcel.id} title={`Order ${view.externalOrderId}`}>
           <div className="flex flex-col gap-4">
             <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
-              <dt className="text-slate-500">State</dt>
+              <dt className="text-subtle">State</dt>
               <dd>
                 {view.parcel.status}
                 {view.parcel.status === 'labelled' ? (
                   // Said in words, because it is the distinction the whole
                   // screen exists to make and a bare status word does not carry
                   // it.
-                  <span className="text-slate-500"> — postage bought, not yet handed over</span>
+                  <span className="text-subtle"> — postage bought, not yet handed over</span>
                 ) : null}
               </dd>
-              <dt className="text-slate-500">Weight</dt>
+              <dt className="text-subtle">Weight</dt>
               <dd>{view.parcel.weightGrams} g</dd>
               {view.parcel.shippedAt === null ? null : (
                 <>
-                  <dt className="text-slate-500">Shipped</dt>
+                  <dt className="text-subtle">Shipped</dt>
                   <dd>{view.parcel.shippedAt.toISOString()}</dd>
                 </>
               )}
@@ -133,7 +133,7 @@ export default async function ShippingPage() {
                   <li key={line.externalLineId} className="flex flex-wrap gap-x-3">
                     <span>{line.quantity} ×</span>
                     <span>{line.title ?? line.externalLineId}</span>
-                    {line.sku === null ? null : <span className="text-slate-500">{line.sku}</span>}
+                    {line.sku === null ? null : <span className="text-subtle">{line.sku}</span>}
                   </li>
                 ))}
               </ul>
@@ -147,27 +147,27 @@ export default async function ShippingPage() {
               <div>
                 <h3 className="text-sm font-medium">Label</h3>
                 <dl className="mt-1 grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
-                  <dt className="text-slate-500">Carrier</dt>
+                  <dt className="text-subtle">Carrier</dt>
                   <dd>
                     {view.label.carrier} {view.label.service}
                   </dd>
-                  <dt className="text-slate-500">Cost</dt>
+                  <dt className="text-subtle">Cost</dt>
                   <dd>
                     {view.label.amount} {view.label.currency}
                   </dd>
-                  <dt className="text-slate-500">Tracking</dt>
+                  <dt className="text-subtle">Tracking</dt>
                   <dd>{view.label.trackingNumber}</dd>
-                  <dt className="text-slate-500">State</dt>
+                  <dt className="text-subtle">State</dt>
                   <dd>{view.label.state.replace('_', ' ')}</dd>
                   {view.label.voidDetail === null ? null : (
                     <>
-                      <dt className="text-slate-500">Carrier said</dt>
+                      <dt className="text-subtle">Carrier said</dt>
                       <dd>{view.label.voidDetail}</dd>
                     </>
                   )}
                 </dl>
                 {view.mayViewDocuments ? null : (
-                  <p className="mt-2 text-sm text-slate-500">
+                  <p className="mt-2 text-sm text-subtle">
                     The label document needs <code className="px-1">view_shipments</code>. It is
                     fetched from the carrier when somebody asks for it and is never stored here,
                     because it has the buyer&rsquo;s address printed on it.
@@ -182,10 +182,10 @@ export default async function ShippingPage() {
                 <ul className="mt-1 flex flex-col gap-1 text-sm">
                   {view.tracking.map((event) => (
                     <li key={event.id} className="flex flex-wrap gap-x-3">
-                      <span className="text-slate-500">{event.occurredAt.toISOString()}</span>
+                      <span className="text-subtle">{event.occurredAt.toISOString()}</span>
                       <span>{event.status.replace(/_/g, ' ')}</span>
                       {event.location === null ? null : (
-                        <span className="text-slate-500">{event.location}</span>
+                        <span className="text-subtle">{event.location}</span>
                       )}
                     </li>
                   ))}
@@ -202,7 +202,7 @@ export default async function ShippingPage() {
                       <span>{push.kind.replace(/_/g, ' ')}</span>
                       <span className="font-medium">{push.state}</span>
                       {push.failureSummary === null ? null : (
-                        <span className="text-slate-500">{push.failureSummary}</span>
+                        <span className="text-subtle">{push.failureSummary}</span>
                       )}
                     </li>
                   ))}

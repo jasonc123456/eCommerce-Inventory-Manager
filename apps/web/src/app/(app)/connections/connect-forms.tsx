@@ -42,7 +42,7 @@ export function ConnectForms({
     <div className="flex flex-col gap-6">
       {ebayEnvironments.length === 0 ? (
         <Card title="Connect an eBay account">
-          <p className="text-sm opacity-70">
+          <p className="text-sm text-muted">
             This installation has no eBay keyset configured, so there is nothing to authorize
             against. An administrator sets the client id, client secret, and RuName in the
             environment file and restarts.
@@ -94,7 +94,7 @@ function EbayForm({
           <select
             name="environment"
             defaultValue={environments.includes('production') ? 'production' : environments[0]}
-            className="rounded-md border border-black/20 bg-transparent px-3 py-2 text-base dark:border-white/25"
+            className="rounded-md border border-[var(--border-strong)] bg-transparent px-3 py-2 text-base"
           >
             {environments.map((environment) => (
               <option key={environment} value={environment}>
@@ -105,7 +105,7 @@ function EbayForm({
         </Field>
       )}
 
-      <p className="text-sm opacity-70">
+      <p className="text-sm text-muted">
         You will be sent to eBay to sign in and approve this application. eBay asks which account
         every time, so check you are signing into the right seller.
       </p>
@@ -148,7 +148,7 @@ function StoreForm({ csrf, businessId }: { csrf: string; businessId: string }) {
         />
       </Field>
 
-      <p className="text-sm opacity-70">
+      <p className="text-sm text-muted">
         You will be sent to your own store to approve this application, and WooCommerce will issue a
         key. Sign in as a user with product, order, webhook, and refund access rather than as a
         general administrator.
@@ -184,7 +184,7 @@ function ManualStoreForm({ csrf, businessId }: { csrf: string; businessId: strin
       <input type="hidden" name={CSRF_FIELD} value={csrf} />
       <input type="hidden" name="businessId" value={businessId} />
 
-      <p className="text-sm opacity-70">
+      <p className="text-sm text-muted">
         Use this when the approval screen does not appear — some security plugins block it. In
         WooCommerce, go to Settings, Advanced, REST API, and add a key with read and write access.
       </p>
@@ -274,9 +274,9 @@ export function DisconnectForm({
       )}
 
       {impact === undefined || outcome.message !== undefined ? null : (
-        <div className="flex flex-col gap-2 rounded-md border border-black/20 p-3 dark:border-white/25">
+        <div className="flex flex-col gap-2 rounded-md border border-[var(--border-strong)] p-3">
           <p className="text-sm font-medium">Disconnecting {impact.displayName} will:</p>
-          <ul className="list-disc pl-5 text-sm opacity-80">
+          <ul className="list-disc pl-5 text-sm text-muted">
             <li>
               discard {impact.credentials} stored credential{impact.credentials === 1 ? '' : 's'}
             </li>
@@ -295,7 +295,7 @@ export function DisconnectForm({
           </ul>
 
           {impact.webhooksToLeave.length === 0 ? null : (
-            <p className="text-sm opacity-80">
+            <p className="text-sm text-muted">
               These registrations were not created by this application and will be left in place for
               you to remove: {impact.webhooksToLeave.map((entry) => entry.topic).join(', ')}.
             </p>

@@ -35,7 +35,7 @@ export function LinkForm({
   });
 
   if (fragment === undefined) {
-    return <p className="text-sm opacity-70">Checking your link…</p>;
+    return <p className="text-sm text-muted">Checking your link…</p>;
   }
 
   if (fragment.length === 0) {

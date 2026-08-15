@@ -62,8 +62,15 @@ describe('every screen', () => {
       // mutually exclusive early returns — "you are not a member of any
       // business yet" is a different render of the same page — and counting
       // occurrences in source counts branches, not what a browser shows.
+      //
+      // `<PageHeader>` counts, and the test below proves it renders an <h1>.
+      // Without that clause this check would forbid the heading being factored
+      // into a shared component, which is a rule about code organization
+      // wearing an accessibility rule's clothes — and it would push every
+      // screen back to hand-rolling its own header, where the real regression
+      // lives.
       const source = readFileSync(path, 'utf8');
-      const headings = source.match(/<h1[\s>]/gu) ?? [];
+      const headings = source.match(/<h1[\s>]|<PageHeader[\s>]/gu) ?? [];
 
       expect(headings.length).toBeGreaterThanOrEqual(1);
     },
@@ -132,6 +139,14 @@ describe('the shared form components', () => {
     // looks identical in a screenshot.
     expect(form).toMatch(/<label\b/u);
     expect(form).toMatch(/export function Field\(/u);
+  });
+
+  it('gives every screen that uses it a first-level heading', () => {
+    // The other half of the page-heading check above. Screens are allowed to
+    // delegate their <h1> to this component, so this is what stops the
+    // delegation from being to something that never renders one.
+    expect(form).toMatch(/export function PageHeader\(/u);
+    expect(form).toMatch(/<h1[\s>]/u);
   });
 
   it('announces a notice without stealing focus', () => {

@@ -81,7 +81,7 @@ export function AlertControls({
             <select
               name="hours"
               defaultValue="4"
-              className="rounded-md border border-black/15 px-3 py-2 text-sm dark:border-white/20"
+              className="rounded-md border border-[var(--border)] px-3 py-2 text-sm"
             >
               {SNOOZE_CHOICES.map((hours) => (
                 <option key={hours} value={hours}>
@@ -137,7 +137,7 @@ export function PreferenceForm({
         <select
           name="emailMinSeverity"
           defaultValue={emailMinSeverity}
-          className="rounded-md border border-black/15 px-3 py-2 text-sm dark:border-white/20"
+          className="rounded-md border border-[var(--border)] px-3 py-2 text-sm"
         >
           {FLOORS.map((floor) => (
             <option key={floor.value} value={floor.value}>
@@ -149,7 +149,7 @@ export function PreferenceForm({
 
       <fieldset className="flex flex-col gap-2">
         <legend className="text-sm font-medium">Exceptions</legend>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-subtle">
           Always email me about these, even below the level above; or never, even above it. A kind
           cannot be both.
         </p>
@@ -210,7 +210,7 @@ export function QuietHoursForm({
       <input type="hidden" name="businessId" value={businessId} />
       <Message state={state} />
 
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-subtle">
         Times are read in this business’s own timezone, {timezone}. Email waits until the window
         ends; oversells and unsafe drift do not wait. Leave both blank for no quiet hours.
       </p>

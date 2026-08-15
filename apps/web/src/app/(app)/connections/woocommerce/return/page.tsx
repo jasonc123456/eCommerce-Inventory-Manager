@@ -42,7 +42,7 @@ export default async function WooCommerceReturnPage({
               Your store reported that you approved this application and issued a key. The store
               sends that key to this application separately, so it may take a moment to appear.
             </p>
-            <p className="text-sm opacity-70">
+            <p className="text-sm text-muted">
               If the store does not appear as connected, the key never arrived — usually a security
               plugin or a proxy blocking the callback. Connect the store with a key you make
               yourself instead; it ends up in exactly the same place.
@@ -58,7 +58,7 @@ export default async function WooCommerceReturnPage({
             <Notice tone="info">
               Your store did not report an approval, so no key was issued and nothing has changed.
             </Notice>
-            <p className="text-sm opacity-70">
+            <p className="text-sm text-muted">
               This happens when the approval screen is declined or closed. You can start again, or
               create a key in the store yourself and enter it directly.
             </p>

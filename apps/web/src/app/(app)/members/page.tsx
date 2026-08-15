@@ -78,7 +78,7 @@ export default async function MembersPage() {
     <main className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
         <h1 className="text-xl font-semibold">Members</h1>
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted">
           Who can reach {business?.name ?? 'this business'}. Access to one business never grants
           access to another.
         </p>
@@ -94,9 +94,9 @@ export default async function MembersPage() {
                 <div className="flex min-w-0 flex-1 flex-col">
                   <span className="text-sm font-medium">
                     {member.displayName ?? member.email}
-                    {isSelf ? <span className="ml-2 text-xs opacity-70">you</span> : null}
+                    {isSelf ? <span className="ml-2 text-xs text-muted">you</span> : null}
                   </span>
-                  <span className="text-xs opacity-70">
+                  <span className="text-xs text-muted">
                     {member.email} · {member.role}
                     {member.status === 'suspended' ? ' · suspended' : ''}
                   </span>
@@ -115,7 +115,7 @@ export default async function MembersPage() {
                         id={`role-${member.membershipId}`}
                         name="role"
                         defaultValue={member.role}
-                        className="rounded-md border border-black/20 bg-transparent px-2 py-1 text-sm dark:border-white/25"
+                        className="rounded-md border border-[var(--border-strong)] bg-transparent px-2 py-1 text-sm"
                       >
                         <option value="viewer">Viewer</option>
                         <option value="operator">Operator</option>
@@ -164,7 +164,7 @@ export default async function MembersPage() {
               <li key={invitation.id} className="flex flex-wrap items-center gap-3 py-3">
                 <div className="flex min-w-0 flex-1 flex-col">
                   <span className="text-sm font-medium">{invitation.email}</span>
-                  <span className="text-xs opacity-70">
+                  <span className="text-xs text-muted">
                     {invitation.role} · expires {invitation.expiresAt.toISOString().slice(0, 16)}Z
                   </span>
                 </div>
