@@ -33,7 +33,13 @@
 
   --text: #14181f;
   --text-muted: #5a6472;
-  --text-subtle: #7b8494;
+  /* Contrast-checked, not eyeballed. "Subtle" is a size and a weight, not a
+     licence to drop below 4.5:1 — these are the sidebar's group headings and
+     every statistic's label, and they are the smallest text in the interface.
+     The browser tier measures this against the resolved colours on every run
+     (apps/e2e/tests/accessibility.cross.spec.ts); the value it rejected was
+     #7b8494, at 3.4:1 on the sunken surface. */
+  --text-subtle: #646c7a;
 
   /* A single accent. Indigo reads as neutral-technical rather than as a brand
      shouting, which is right for a tool somebody stares at all day. */
@@ -71,7 +77,10 @@
 
     --text: #e8eaee;
     --text-muted: #a1a9b6;
-    --text-subtle: #848d9c;
+    /* Lifted for the same reason, and measured against the raised surface
+       rather than the page: a card sitting on a card is the lightest ground
+       this text ever appears on, and #848d9c reached only 4.5:1 there. */
+    --text-subtle: #8d96a5;
 
     /* Lifted, because the light-mode indigo disappears against a dark surface. */
     --accent: #8b87f5;
