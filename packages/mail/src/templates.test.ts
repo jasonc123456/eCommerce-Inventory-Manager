@@ -43,6 +43,26 @@ describe('renderMagicLink', () => {
     expect(parsed.hash).toBe('');
   });
 
+  it('appends the token to a destination that already has a query', () => {
+    // Installation setup points at `/setup?step=complete`. A second `?` would
+    // make the first parameter's value read "complete?t=…", so the page would
+    // decide it was on step one and show the form that asks for a link again —
+    // an installation that cannot be claimed, but only on this carrier.
+    const carried = renderMagicLink({
+      ...brand,
+      token: 'tok-en_value',
+      expiresInMinutes: 15,
+      path: '/setup?step=complete',
+      tokenCarrier: 'query',
+    });
+    const url = carried.text.split('\n').find((line) => line.startsWith('https://'))!;
+    const parsed = new URL(url);
+
+    expect(parsed.pathname).toBe('/setup');
+    expect(parsed.searchParams.get('step')).toBe('complete');
+    expect(parsed.searchParams.get('t')).toBe('tok-en_value');
+  });
+
   it('points at the configured origin and nowhere else', () => {
     for (const url of extractUrls(message.text)) {
       expect(new URL(url).origin).toBe('https://inventory.example');

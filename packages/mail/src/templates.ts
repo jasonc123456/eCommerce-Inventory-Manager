@@ -94,9 +94,17 @@ export function magicLinkUrl(context: {
 
   // Section 19 prefers the fragment, which is not sent in the HTTP request and
   // so is logged by nothing in the way.
-  return context.tokenCarrier === 'query'
-    ? `${base}?${TOKEN_QUERY_PARAMETER}=${token}`
-    : `${base}#${token}`;
+  if (context.tokenCarrier !== 'query') {
+    return `${base}#${token}`;
+  }
+
+  // The destination may already carry a query of its own — installation setup
+  // points at `/setup?step=complete` — and appending a second `?` produces a URL
+  // whose first parameter's value swallows the token. That failure is invisible
+  // on the default carrier and total on this one: the recipient lands on a page
+  // that decides which step to show from a parameter that now reads
+  // "complete?t=…", so it shows the first step again and the link does nothing.
+  return `${base}${base.includes('?') ? '&' : '?'}${TOKEN_QUERY_PARAMETER}=${token}`;
 }
 
 export function renderMagicLink(
