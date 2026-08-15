@@ -235,6 +235,11 @@ export default tseslint.config(
       // behaviours: a multi-architecture image is a property of a workflow, and
       // a runbook is a property of a document.
       'packages/health/src/acceptance.integration.test.ts',
+      // And the M9 exit gate, which walks the AC-01..AC-20 conformance matrix
+      // and opens every artifact it cites. The paths come from that matrix, not
+      // from input, and checking them is the entire reason the matrix is data
+      // rather than prose.
+      'packages/pilot/src/acceptance.integration.test.ts',
     ],
     rules: {
       'no-restricted-properties': 'off',

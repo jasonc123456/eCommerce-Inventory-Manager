@@ -65,6 +65,13 @@ export {
 } from './criteria';
 
 export {
+  CONFORMANCE,
+  EXPECTED_CONFORMANCE_IDS,
+  type ConformanceEntry,
+  type ConformanceStatus,
+} from './conformance';
+
+export {
   classifyIncident,
   fileIncident,
   listDrills,

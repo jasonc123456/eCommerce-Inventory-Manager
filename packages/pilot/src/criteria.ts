@@ -85,15 +85,28 @@ export interface PilotReport {
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 /**
- * The current time, according to the database.
+ * The current time, according to the database, rounded up to the next
+ * millisecond.
+ *
+ * Two separate reasons, and the second is subtle enough to be worth the whole
+ * comment.
  *
  * Every timestamp this report compares — an incident's `detected_at`, a sample's
  * `noticed_at`, a drill's `performed_at` — was written by PostgreSQL's clock. In
- * a Compose deployment the web tier and the database are two containers, and
+ * a Compose deployment the web tier and the database are two containers, so
  * asking Node what time it is to bound a window over PostgreSQL's timestamps
- * means a few milliseconds of skew can drop the most recent row out of its own
- * window. That is invisible in a month of pilot data and produces exactly one
- * kind of bug report: "the incident I just filed is not on the screen".
+ * means clock skew can drop the most recent row out of its own window.
+ *
+ * And PostgreSQL keeps timestamps to the microsecond while JavaScript's `Date`
+ * keeps them to the millisecond. Converting `now()` into a `Date` therefore
+ * truncates *downwards*, which for an exclusive upper bound is the wrong
+ * direction: a row written at 46.381241 falls outside a window ending at a
+ * reading of 46.381500, because that reading became 46.381. The window excludes
+ * a row that happened before it.
+ *
+ * Rounding up costs at most one millisecond of future — during which nothing has
+ * happened yet, so nothing can be wrongly included — and removes a whole class
+ * of "the incident I just filed is not on the screen".
  *
  * One extra round trip per report, which is a report an operator loads by hand.
  */
@@ -105,7 +118,9 @@ async function databaseNow(db: PilotExecutor): Promise<Date> {
     throw new Error('the database did not report the time');
   }
 
-  return value instanceof Date ? value : new Date(value);
+  const truncated = value instanceof Date ? value : new Date(value);
+
+  return new Date(truncated.getTime() + 1);
 }
 
 /**
