@@ -63,6 +63,7 @@ COPY packages/listings/package.json packages/listings/
 COPY packages/mail/package.json packages/mail/
 COPY packages/notifications/package.json packages/notifications/
 COPY packages/observability/package.json packages/observability/
+COPY packages/pilot/package.json packages/pilot/
 COPY packages/providers/package.json packages/providers/
 COPY packages/ratelimit/package.json packages/ratelimit/
 COPY packages/retention/package.json packages/retention/
