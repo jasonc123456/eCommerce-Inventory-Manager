@@ -66,3 +66,4 @@ export * from './schema/listings';
 export * from './schema/shipping';
 export * from './schema/ai';
 export * from './schema/pilot';
+export * from './schema/deletion';

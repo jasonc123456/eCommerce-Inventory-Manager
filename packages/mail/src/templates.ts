@@ -227,6 +227,81 @@ export function renderInvitation(
   };
 }
 
+export interface DeletionConfirmationContext extends BrandContext {
+  readonly businessName: string;
+  readonly requestedByEmail: string;
+  readonly requestedAt: Date;
+  readonly expiresAt: Date;
+  /** The confirmation link, already assembled. */
+  readonly url: string;
+}
+
+/**
+ * The second half of a business deletion (sections 5, 13).
+ *
+ * This is the one message in this application that does carry an action link,
+ * which is a deliberate exception to the rule `renderSecurityNotice` follows.
+ * The reason is the direction of the risk: a revocation link in the wrong hands
+ * costs somebody a session, while requiring a *deletion* to be confirmed from
+ * the mailbox is precisely what stops a stolen session from destroying a shop.
+ * The link is single-use, expires within the hour, and is refused unless the
+ * person who opens it is signed in and still an owner — so possession of the
+ * message alone deletes nothing.
+ *
+ * It says what will happen in the words somebody needs to decide, including the
+ * part that cannot be undone, and it says plainly what to do if this was not
+ * them. A confirmation email that only confirms is a confirmation nobody reads.
+ */
+export function renderDeletionConfirmation(
+  context: DeletionConfirmationContext,
+  overrides: TemplateOverrides = {},
+): RenderedMessage {
+  const consequences = [
+    `Everything in ${context.businessName} stops synchronizing immediately.`,
+    'Its eBay and WooCommerce credentials are erased and cannot be recovered —',
+    'reconnecting later means authorizing from scratch.',
+    'Its records are retained but hidden, so history stays auditable.',
+  ];
+
+  return {
+    subject: `Confirm deleting ${context.businessName}`,
+    text: [
+      `${context.requestedByEmail} asked to delete the business "${context.businessName}"`,
+      `on ${context.requestedAt.toISOString()}.`,
+      '',
+      'If you want this to happen, open the link below while signed in:',
+      '',
+      context.url,
+      '',
+      `The link works once and expires at ${context.expiresAt.toISOString()}.`,
+      '',
+      'What deletion does:',
+      ...consequences.map((line) => `  - ${line}`),
+      '',
+      'If you did not ask for this, do not open the link. Sign in, cancel the',
+      'request on the business settings screen, and change your password —',
+      'somebody may be using your session.',
+      ...footerLines(overrides),
+    ].join('\n'),
+    html: wrapHtml(context.productName, [
+      paragraph(
+        `${escapeHtml(context.requestedByEmail)} asked to delete the business ` +
+          `"${escapeHtml(context.businessName)}".`,
+      ),
+      `<p><a href="${escapeHtml(context.url)}" style="display:inline-block;padding:12px 20px;background:#b91c1c;color:#fff;border-radius:6px;text-decoration:none">Confirm deletion</a></p>`,
+      paragraph(`The link works once and expires at ${context.expiresAt.toISOString()}.`),
+      `<p style="word-break:break-all;font-family:ui-monospace,monospace;font-size:13px">${escapeHtml(context.url)}</p>`,
+      paragraph('What deletion does:'),
+      `<ul>${consequences.map((line) => `<li>${escapeHtml(line)}</li>`).join('')}</ul>`,
+      paragraph(
+        'If you did not ask for this, do not open the link. Sign in, cancel the request on the ' +
+          'business settings screen, and change your password.',
+      ),
+      ...footerHtml(overrides),
+    ]),
+  };
+}
+
 export interface SecurityNoticeContext extends BrandContext {
   /** One plain sentence describing what changed. Never a secret or a token. */
   readonly summary: string;

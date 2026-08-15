@@ -44,13 +44,28 @@ export {
 export {
   createMembershipService,
   domainAllowed,
+  isKnownTimezone,
   type AcceptInvitationResult,
+  type CreateBusinessInput,
+  type CreateBusinessResult,
   type GrantSpecification,
   type InviteInput,
   type InviteResult,
   type MembershipService,
   type MembershipWriter,
+  type UpdateBusinessInput,
+  type UpdateBusinessResult,
 } from './memberships';
+
+export {
+  DELETION_CONFIRMATION_TTL_MS,
+  createDeletionService,
+  type ConfirmDeletionInput,
+  type ConfirmDeletionResult,
+  type DeletionService,
+  type RequestDeletionInput,
+  type RequestDeletionResult,
+} from './deletion';
 
 export {
   createPasskeyService,

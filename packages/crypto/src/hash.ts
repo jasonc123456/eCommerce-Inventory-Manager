@@ -45,7 +45,14 @@ export type HashDomain =
    * changed in the provider's portal is detectable, without the destination row
    * becoming a second place the token itself lives.
    */
-  | 'notification_verification';
+  | 'notification_verification'
+  /**
+   * Section 5: the emailed confirmation that a business really is to be
+   * deleted. Its own domain rather than reusing `invitation`, so a token issued
+   * for one purpose can never be presented for the other — the two have very
+   * different consequences and identical shapes.
+   */
+  | 'business_deletion';
 
 export interface KeyedHasher {
   /**

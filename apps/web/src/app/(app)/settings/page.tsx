@@ -4,11 +4,12 @@ import { DEFAULT_POLICY, loadRetentionSettings, policyOf } from '@eim/retention'
 import { eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 
-import { Card, EmptyState, PageHeader } from '../../../components/form';
+import { Card, EmptyState, Notice, PageHeader } from '../../../components/form';
 import { csrfToken } from '../../../lib/csrf';
 import { identity } from '../../../lib/identity';
 import { runtime } from '../../../lib/runtime';
 import { currentContext } from '../../../lib/session';
+import { CancelDeletionForm, RequestDeletionForm } from './danger-forms';
 import { BusinessDetailsForm, RetentionForm } from './settings-forms';
 
 export const dynamic = 'force-dynamic';
@@ -69,6 +70,13 @@ export default async function SettingsPage() {
   const mayEditDetails = authorize(subject, 'manage_business_settings').allowed;
   const mayEditRetention = authorize(subject, 'manage_retention_settings').allowed;
 
+  // Ownership, not the `delete_business` permission. Owners hold it implicitly,
+  // so checking the permission would also show this to a manager somebody
+  // granted it to — and only an owner may delete a shop. The service checks the
+  // same thing again; this only decides whether the card is worth drawing.
+  const isOwner = subject.isOwner;
+  const pending = isOwner ? await identity().deletion.outstanding(db, businessId) : null;
+
   const [row] = await db
     .select({ name: businesses.name, slug: businesses.slug, timezone: businesses.timezone })
     .from(businesses)
@@ -121,6 +129,33 @@ export default async function SettingsPage() {
           </EmptyState>
         </Card>
       )}
+
+      {isOwner ? (
+        <Card
+          title="Delete this business"
+          description="Asks twice: once here, and once by email to every owner."
+        >
+          {pending === null ? (
+            <RequestDeletionForm
+              csrf={csrf}
+              businessId={businessId}
+              businessName={row?.name ?? ''}
+            />
+          ) : (
+            <div className="flex flex-col gap-3">
+              <Notice tone="warning">
+                A deletion was requested at {pending.requestedAt.toISOString()} and the emailed link
+                works until {pending.expiresAt.toISOString()}. Nothing has been deleted. If this was
+                not you, cancel it now and change your password.
+              </Notice>
+              {pending.reason === null ? null : (
+                <p className="text-muted text-sm">Reason given: {pending.reason}</p>
+              )}
+              <CancelDeletionForm csrf={csrf} businessId={businessId} />
+            </div>
+          )}
+        </Card>
+      ) : null}
 
       <Card title="Defaults" description="What applies until somebody changes it.">
         <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">

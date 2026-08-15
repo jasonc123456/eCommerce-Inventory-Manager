@@ -64,6 +64,11 @@ export const AUDIT_ACTIONS = [
   'business.created',
   'business.settings_changed',
   'business.security_changed',
+  // Deletion is three actions, not one, because the interesting record is the
+  // gap between them: who asked, and whether anybody stopped it.
+  'business.deletion_requested',
+  'business.deletion_cancelled',
+  'business.deleted',
 
   // --- Accounts ------------------------------------------------------------
   'user.suspended',

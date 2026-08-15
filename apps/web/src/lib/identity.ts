@@ -2,12 +2,14 @@ import { createHasher, loadKeyring, type KeyedHasher, type Keyring } from '@eim/
 import {
   createBootstrapService,
   createChallengeService,
+  createDeletionService,
   createMembershipService,
   createPasskeyService,
   createSessionService,
   createTwoFactorService,
   type BootstrapService,
   type ChallengeService,
+  type DeletionService,
   type MembershipService,
   type PasskeyService,
   type SessionService,
@@ -40,6 +42,7 @@ export interface Identity {
   readonly challenges: ChallengeService;
   readonly bootstrap: BootstrapService;
   readonly memberships: MembershipService;
+  readonly deletion: DeletionService;
   readonly passkeys: PasskeyService;
   readonly twoFactor: TwoFactorService;
   readonly mailer: Mailer;
@@ -82,6 +85,7 @@ export function identity(): Identity {
       setupSecret: config.EIM_SETUP_SECRET,
     }),
     memberships: createMembershipService(hasher),
+    deletion: createDeletionService(hasher),
     passkeys: createPasskeyService(hasher, {
       // Section 20: a stable relying-party id from the canonical deployment
       // hostname. Derived rather than configured separately, because the two
