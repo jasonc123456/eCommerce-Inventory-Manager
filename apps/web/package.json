@@ -27,6 +27,7 @@
     "@eim/mail": "workspace:*",
     "@eim/notifications": "workspace:*",
     "@eim/observability": "workspace:*",
+    "@eim/pilot": "workspace:*",
     "@eim/providers": "workspace:*",
     "@eim/ratelimit": "workspace:*",
     "@eim/review": "workspace:*",
