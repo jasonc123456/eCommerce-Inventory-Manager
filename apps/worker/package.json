@@ -19,6 +19,7 @@
     "@eim/mail": "workspace:*",
     "@eim/notifications": "workspace:*",
     "@eim/observability": "workspace:*",
+    "@eim/pilot": "workspace:*",
     "@eim/providers": "workspace:*",
     "@eim/retention": "workspace:*",
     "graphile-worker": "catalog:",

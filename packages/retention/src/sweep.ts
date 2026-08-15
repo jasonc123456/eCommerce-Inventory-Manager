@@ -200,6 +200,29 @@ async function deleteBatch(
                limit ${limit})`,
       );
 
+    case 'convergence_samples':
+      // Settled ones only. A sample still pending is an outstanding change, and
+      // deleting it because it is old would remove the record of the slowest
+      // change this installation has ever had — which is the one the pilot bar
+      // most needs to see.
+      return count(
+        db,
+        sql`delete from convergence_samples where id in (
+              select id from convergence_samples
+               where business_id = ${business}
+                 and outcome <> 'pending' and noticed_at < ${cutoff}
+               limit ${limit})`,
+      );
+
+    case 'withheld_writes':
+      return count(
+        db,
+        sql`delete from pilot_withheld_writes where id in (
+              select id from pilot_withheld_writes
+               where business_id = ${business} and withheld_at < ${cutoff}
+               limit ${limit})`,
+      );
+
     case 'webhook_deliveries':
       // The body is cleared rather than the row deleted. The delivery record is
       // what deduplicates a replayed webhook, and dropping it would let a

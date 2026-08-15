@@ -18,6 +18,7 @@ import {
   type SweepPorts,
 } from '@eim/notifications';
 import { createLogger, createMetrics, newCorrelationId, withContext } from '@eim/observability';
+import { abandonStaleSamples } from '@eim/pilot';
 import { sweepBusiness } from '@eim/retention';
 import { makeWorkerUtils, run, type Runner, type WorkerUtils } from 'graphile-worker';
 
@@ -172,6 +173,23 @@ async function main(): Promise<void> {
       // installation's I/O budget proving there was nothing to do.
       if (Date.now() - lastRetentionSweepAt >= RETENTION_INTERVAL_MS) {
         lastRetentionSweepAt = Date.now();
+
+        // Section 1's measurement needs closing off as well as pruning. A worker
+        // that died between opening a convergence sample and settling it leaves
+        // a row that would otherwise stay pending forever, and an outstanding
+        // count that only grows is a number nobody can read anything from.
+        //
+        // Abandoned, not deleted: a change this installation accepted and never
+        // delivered is a missed objective whatever went wrong, and dropping it
+        // would improve the pilot figure every time something broke badly.
+        const abandoned = await abandonStaleSamples(db);
+
+        if (abandoned > 0) {
+          logger.warn(
+            { event: 'convergence_samples_abandoned', count: abandoned },
+            'changes were accepted and never reached their channel',
+          );
+        }
 
         const shops = await db.select({ id: businesses.id }).from(businesses);
 

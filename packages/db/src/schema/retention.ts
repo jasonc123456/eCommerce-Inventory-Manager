@@ -23,6 +23,12 @@ export const historyDataClasses = [
   'notification_deliveries',
   'resolved_alerts',
   'ai_suggestions',
+  // Section 1's pilot measurements. History rather than raw: a mapping, a
+  // version, a quantity, and timestamps, with nothing that reaches a buyer.
+  // Pilot incidents and drills are deliberately absent — they are the evidence a
+  // release decision rests on, and evidence with an expiry date is not evidence.
+  'convergence_samples',
+  'withheld_writes',
 ] as const;
 
 export const rawDataClasses = ['webhook_deliveries', 'processed_events'] as const;

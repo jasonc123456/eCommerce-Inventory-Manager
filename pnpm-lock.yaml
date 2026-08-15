@@ -320,6 +320,9 @@ importers:
       '@eim/observability':
         specifier: workspace:*
         version: link:../../packages/observability
+      '@eim/pilot':
+        specifier: workspace:*
+        version: link:../../packages/pilot
       '@eim/providers':
         specifier: workspace:*
         version: link:../../packages/providers

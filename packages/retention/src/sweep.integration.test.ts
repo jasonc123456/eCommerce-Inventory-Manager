@@ -162,6 +162,8 @@ describe('sweepBusiness', () => {
       'notification_deliveries',
       'resolved_alerts',
       'ai_suggestions',
+      'convergence_samples',
+      'withheld_writes',
       'webhook_deliveries',
       'processed_events',
     ]);
