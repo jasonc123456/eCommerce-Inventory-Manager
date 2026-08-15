@@ -14,8 +14,46 @@ import { NextResponse, type NextRequest } from 'next/server';
  * policy exists to prevent.
  */
 
-/** Paths where section 19 requires a stricter referrer policy. */
-const AUTHENTICATION_PATHS = ['/sign-in', '/setup', '/invitations', '/account/security'];
+/**
+ * Paths where section 19 requires a stricter referrer policy.
+ *
+ * `/businesses/delete` is here because it is one in every way that matters: it
+ * is reached by an emailed single-use token carried in the query (D-267), so
+ * its URL is a secret even though the screen is not a sign-in screen. Without
+ * it the page inherits `strict-origin-when-cross-origin`, which sends the whole
+ * URL — token included — as the Referer on the next same-origin request.
+ */
+const AUTHENTICATION_PATHS = [
+  '/sign-in',
+  '/setup',
+  '/invitations',
+  '/account/security',
+  '/businesses/delete',
+];
+
+/**
+ * The stricter policy those paths get, and why it is not `no-referrer` (D-281).
+ *
+ * Section 19 originally said `no-referrer`, and `no-referrer` breaks every form
+ * on these pages for anybody without JavaScript. The reason is in the Fetch
+ * standard rather than in this application: a POST that is a top-level
+ * navigation carries `Origin: null` when the referrer policy is `no-referrer`,
+ * and a Server Action refuses a request whose origin does not match its host.
+ * With JavaScript the submission is a same-origin fetch and carries a real
+ * origin, so the failure is invisible until somebody turns scripting off — on
+ * the sign-in screen, which is where people arrive when something has already
+ * gone wrong.
+ *
+ * `strict-origin` sends `https://this-installation/` and nothing else: no path,
+ * no query, no token, and nothing at all on a downgrade to HTTP. That is the
+ * whole of what `no-referrer` was protecting here — every request these pages
+ * make is same-origin (`default-src 'self'`, `form-action 'self'`, no
+ * third-party resources), so the only thing `no-referrer` additionally hid was
+ * the origin, from the one party that already knows it.
+ *
+ * `apps/e2e/tests/without-javascript.spec.ts` is what holds this in place.
+ */
+const AUTHENTICATION_REFERRER_POLICY = 'strict-origin';
 
 export function middleware(request: NextRequest): NextResponse {
   const nonce = generateNonce();
@@ -39,10 +77,10 @@ export function middleware(request: NextRequest): NextResponse {
   response.headers.set('Content-Security-Policy', header);
 
   if (isAuthenticationPage) {
-    // Section 19: authentication pages use no-referrer. A magic-link page has a
-    // token in its fragment, and although a fragment is not sent in a Referer,
-    // the surrounding URL still describes what the user was doing.
-    response.headers.set('Referrer-Policy', 'no-referrer');
+    // A magic-link page has a token in its URL, and although a fragment is
+    // never sent in a Referer, the query carrier (D-182) and the surrounding
+    // path both describe what the user was doing. This strips all of it.
+    response.headers.set('Referrer-Policy', AUTHENTICATION_REFERRER_POLICY);
   }
 
   return response;
