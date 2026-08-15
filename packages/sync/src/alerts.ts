@@ -1,5 +1,6 @@
 import { raiseAlert, type RaisedAlert } from '@eim/notifications';
 import { type Database } from '@eim/db';
+import { fileIncident } from '@eim/pilot';
 
 /**
  * The synchronization core's alerts (sections 11, 12, 22).
@@ -31,7 +32,7 @@ export async function alertOversold(
     readonly shortage: number;
   },
 ): Promise<RaisedAlert> {
-  return raiseAlert(db, {
+  const raised = await raiseAlert(db, {
     businessId: input.businessId,
     kind: 'oversold',
     severity: 'critical',
@@ -42,6 +43,23 @@ export async function alertOversold(
       'Check the item for stock that has not been counted, then adjust or cancel the affected order lines.',
     detail: { externalOrderId: input.externalOrderId, shortage: input.shortage },
   });
+
+  // Section 1's first pilot criterion is "no oversale attributable to a
+  // synchronization defect", and whether this one was is a judgement nobody can
+  // make from here. So it is filed for review rather than counted, and the
+  // criterion stays undemonstrated until a person says which kind it was.
+  //
+  // Filed against the alert id, which the unique index makes idempotent: an
+  // unacknowledged oversell reminds every few hours, and a fresh incident per
+  // reminder would turn the criterion into a measure of response time.
+  await fileIncident(db, {
+    businessId: input.businessId,
+    kind: 'oversale',
+    alertId: raised.alertId,
+    summary: `${String(input.shortage)} units short on order ${input.externalOrderId}`,
+  });
+
+  return raised;
 }
 
 /** A mapping that has stopped synchronizing and will not resume by itself. */

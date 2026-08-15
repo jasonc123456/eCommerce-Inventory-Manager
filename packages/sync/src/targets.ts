@@ -1,6 +1,7 @@
 import type { Database } from '@eim/db';
 import { projectItem } from '@eim/inventory';
 import { JobPriority, enqueue, type QueueExecutor } from '@eim/jobs';
+import { openSample, type ChangeOrigin } from '@eim/pilot';
 import { sql } from 'drizzle-orm';
 
 /**
@@ -177,6 +178,13 @@ export async function readTarget(db: QueueExecutor, mappingId: string): Promise<
  * side of section 8 to change.
  *
  * Call it inside the transaction that moved the stock.
+ *
+ * The `origin` is section 1's clock. It says what caused the change and when
+ * this installation first knew about it, and it is a required argument rather
+ * than an optional one for a reason: every default that could be chosen here is
+ * `now`, and `now` is the moment we got round to the work, not the moment the
+ * work arrived. A measurement that starts when we start is a measurement that
+ * cannot detect us being slow.
  */
 export async function refreshTargetsForItem(
   db: Database,
@@ -184,6 +192,7 @@ export async function refreshTargetsForItem(
     readonly businessId: string;
     readonly canonicalItemId: string;
     readonly reason: string;
+    readonly origin: ChangeOrigin;
   },
 ): Promise<readonly DesiredTargetResult[]> {
   const projection = await projectItem(db, {
@@ -222,6 +231,19 @@ export async function refreshTargetsForItem(
     results.push(target);
 
     if (target.changed) {
+      // Opened here rather than in the worker, inside the same transaction as
+      // the ledger movement. A sample created later would not exist for a
+      // change that was rolled back — but it also would not exist for a change
+      // whose worker never ran, which is precisely the delay worth measuring.
+      await openSample(db, {
+        businessId: input.businessId,
+        mappingId: channel.mappingId,
+        connectionId: channel.connectionId,
+        targetVersion: target.targetVersion,
+        quantity: target.quantity,
+        origin: input.origin,
+      });
+
       await enqueueChannelWrite(db, {
         businessId: input.businessId,
         connectionId: channel.connectionId,

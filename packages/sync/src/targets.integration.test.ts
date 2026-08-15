@@ -1,3 +1,4 @@
+import { operatorOrigin } from '@eim/pilot';
 import { businesses, connections, providerItems, users } from '@eim/db';
 import {
   activateMapping,
@@ -357,6 +358,7 @@ describe('refreshTargetsForItem', () => {
       businessId: fixture.businessId,
       canonicalItemId: fixture.canonicalItemId,
       reason: 'receipt',
+      origin: operatorOrigin('manual'),
     });
 
     expect(results).toHaveLength(1);
@@ -380,6 +382,7 @@ describe('refreshTargetsForItem', () => {
       businessId: fixture.businessId,
       canonicalItemId: fixture.canonicalItemId,
       reason: 'receipt',
+      origin: operatorOrigin('manual'),
     });
 
     const target = await readTarget(harness.db, fixture.mappingId);
@@ -402,6 +405,7 @@ describe('refreshTargetsForItem', () => {
       businessId: fixture.businessId,
       canonicalItemId: fixture.canonicalItemId,
       reason: 'reconciliation',
+      origin: operatorOrigin('manual'),
     });
 
     expect(second[0]?.changed).toBe(false);
@@ -426,6 +430,7 @@ describe('refreshTargetsForItem', () => {
           businessId: fixture.businessId,
           canonicalItemId: fixture.canonicalItemId,
           reason: 'sale',
+          origin: operatorOrigin('manual'),
         });
         throw new Error('the sale was not valid after all');
       }),

@@ -1,3 +1,4 @@
+import { operatorOrigin } from '@eim/pilot';
 import { businesses, connections, providerItems, users } from '@eim/db';
 import {
   activateMapping,
@@ -156,7 +157,12 @@ async function seed(onHand: number): Promise<Fixture> {
         actorUserId: userId,
         movements: [{ canonicalItemId, locationId, kind: 'receipt', quantityDelta: onHand }],
       });
-      await refreshTargetsForItem(tx, { businessId, canonicalItemId, reason: 'receipt' });
+      await refreshTargetsForItem(tx, {
+        businessId,
+        canonicalItemId,
+        reason: 'receipt',
+        origin: operatorOrigin('manual'),
+      });
     });
   }
 

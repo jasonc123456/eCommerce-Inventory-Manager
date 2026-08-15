@@ -8,6 +8,7 @@ import {
   type LineTreatment,
 } from '@eim/db';
 import { reserve } from '@eim/inventory';
+import type { ChangeOrigin } from '@eim/pilot';
 import type { ProviderOrder, ProviderOrderLine } from '@eim/providers';
 import { and, eq, inArray } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
@@ -96,6 +97,13 @@ export interface IngestInput {
   readonly event: EventIdentity;
   readonly actorUserId?: string | null;
   readonly now?: Date;
+  /**
+   * When this order's trigger was noticed (section 1). Carried from the job
+   * that queued the fetch, so the two-minute objective is measured from the
+   * webhook or the poll that found the order rather than from the moment a
+   * worker happened to reach it.
+   */
+  readonly changeOrigin: ChangeOrigin;
 }
 
 /**
@@ -432,6 +440,7 @@ async function treatLines(
       businessId: input.businessId,
       canonicalItemId,
       reason: `order ${input.order.externalOrderId}`,
+      origin: input.changeOrigin,
     });
   }
 

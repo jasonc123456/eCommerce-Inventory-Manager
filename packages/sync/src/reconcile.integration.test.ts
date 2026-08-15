@@ -1,3 +1,4 @@
+import { operatorOrigin } from '@eim/pilot';
 import { businesses, connections, inventoryConflicts, providerItems, users } from '@eim/db';
 import {
   activateMapping,
@@ -112,7 +113,12 @@ async function seed(onHand = 10): Promise<Fixture> {
       actorUserId: userId,
       movements: [{ canonicalItemId, locationId, kind: 'receipt', quantityDelta: onHand }],
     });
-    await refreshTargetsForItem(tx, { businessId, canonicalItemId, reason: 'receipt' });
+    await refreshTargetsForItem(tx, {
+      businessId,
+      canonicalItemId,
+      reason: 'receipt',
+      origin: operatorOrigin('manual'),
+    });
   });
 
   return { businessId, connectionId, canonicalItemId, locationId, mappingId, externalId, userId };
@@ -190,6 +196,7 @@ describe('reconcile', () => {
         businessId: fixture.businessId,
         canonicalItemId: fixture.canonicalItemId,
         reason: 'sale',
+        origin: operatorOrigin('manual'),
       });
     });
 

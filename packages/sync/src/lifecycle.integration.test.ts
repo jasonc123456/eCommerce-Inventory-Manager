@@ -1,3 +1,4 @@
+import { operatorOrigin } from '@eim/pilot';
 import { businesses, connections, providerItems, users } from '@eim/db';
 import {
   activateMapping,
@@ -150,6 +151,7 @@ async function placeOrder(fixture: Fixture, quantity = 3): Promise<void> {
       order,
       event: eventFor(fixture, 'evt-place'),
       actorUserId: fixture.userId,
+      changeOrigin: operatorOrigin('manual'),
     });
   });
 }
@@ -194,6 +196,7 @@ describe('applyCancellation', () => {
         event: eventFor(fixture, 'evt-cancel', 'order.cancelled'),
         reason: 'the customer changed their mind',
         actorUserId: fixture.userId,
+        changeOrigin: operatorOrigin('manual'),
       }),
     );
 
@@ -221,6 +224,7 @@ describe('applyCancellation', () => {
         event: eventFor(fixture, 'evt-ship', 'order.shipped'),
         reason: 'shipped',
         actorUserId: fixture.userId,
+        changeOrigin: operatorOrigin('manual'),
       }),
     );
 
@@ -235,6 +239,7 @@ describe('applyCancellation', () => {
         event: eventFor(fixture, 'evt-cancel', 'order.cancelled'),
         reason: 'cancelled after despatch',
         actorUserId: fixture.userId,
+        changeOrigin: operatorOrigin('manual'),
       }),
     );
 
@@ -261,6 +266,7 @@ describe('applyCancellation', () => {
           event: eventFor(fixture, 'evt-cancel', 'order.cancelled'),
           reason: 'cancelled',
           actorUserId: fixture.userId,
+          changeOrigin: operatorOrigin('manual'),
         }),
       );
 
@@ -283,6 +289,7 @@ describe('applyCancellation', () => {
         externalOrderId: 'wc-never-seen',
         event: eventFor(fixture, 'evt-orphan', 'order.cancelled'),
         reason: 'cancelled',
+        changeOrigin: operatorOrigin('manual'),
       }),
     );
 
@@ -303,6 +310,7 @@ describe('applyFulfillment', () => {
         event: eventFor(fixture, 'evt-ship', 'order.shipped'),
         reason: 'shipped',
         actorUserId: fixture.userId,
+        changeOrigin: operatorOrigin('manual'),
       }),
     );
 
@@ -327,6 +335,7 @@ describe('applyRefund', () => {
         event: eventFor(fixture, 'evt-ship', 'order.shipped'),
         reason: 'shipped',
         actorUserId: fixture.userId,
+        changeOrigin: operatorOrigin('manual'),
       }),
     );
 
@@ -339,6 +348,7 @@ describe('applyRefund', () => {
         reason: 'refunded in full',
         origin: 'return',
         actorUserId: fixture.userId,
+        changeOrigin: operatorOrigin('manual'),
       }),
     );
 
@@ -367,6 +377,7 @@ describe('applyRefund', () => {
           event: eventFor(fixture, eventId, 'order.refunded'),
           reason: 'refunded',
           actorUserId: fixture.userId,
+          changeOrigin: operatorOrigin('manual'),
         }),
       );
     }
@@ -387,6 +398,7 @@ describe('confirmRestock', () => {
         event: eventFor(fixture, 'evt-ship', 'order.shipped'),
         reason: 'shipped',
         actorUserId: fixture.userId,
+        changeOrigin: operatorOrigin('manual'),
       }),
     );
     await harness.db.transaction(async (tx) =>
@@ -397,6 +409,7 @@ describe('confirmRestock', () => {
         event: eventFor(fixture, 'evt-refund', 'order.refunded'),
         reason: 'returned',
         actorUserId: fixture.userId,
+        changeOrigin: operatorOrigin('manual'),
       }),
     );
 
@@ -429,6 +442,7 @@ describe('confirmRestock', () => {
         event: eventFor(fixture, 'evt-refund', 'order.refunded'),
         reason: 'refunded',
         actorUserId: fixture.userId,
+        changeOrigin: operatorOrigin('manual'),
       }),
     );
 
@@ -458,6 +472,7 @@ describe('confirmRestock', () => {
         event: eventFor(fixture, 'evt-refund', 'order.refunded'),
         reason: 'refunded',
         actorUserId: fixture.userId,
+        changeOrigin: operatorOrigin('manual'),
       }),
     );
 
@@ -517,6 +532,7 @@ describe('declineRestock', () => {
         event: eventFor(fixture, 'evt-refund', 'order.refunded'),
         reason: 'refunded',
         actorUserId: fixture.userId,
+        changeOrigin: operatorOrigin('manual'),
       }),
     );
 

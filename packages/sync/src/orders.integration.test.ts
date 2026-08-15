@@ -1,3 +1,4 @@
+import { operatorOrigin } from '@eim/pilot';
 import {
   businesses,
   connections,
@@ -178,6 +179,7 @@ async function ingest(
       order,
       event: eventFor(fixture, eventId),
       actorUserId: fixture.userId,
+      changeOrigin: operatorOrigin('manual'),
     }),
   );
 }
@@ -365,6 +367,7 @@ describe('ingestOrder', () => {
           connectionId: fixture.connectionId,
           order: orderOf(fixture),
           event: eventFor(fixture, 'evt-1'),
+          changeOrigin: operatorOrigin('manual'),
         });
         throw new Error('something later in the transaction failed');
       }),

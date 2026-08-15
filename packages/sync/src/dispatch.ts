@@ -1,6 +1,7 @@
 import type { Database } from '@eim/db';
 import { resolveWriteTarget } from '@eim/inventory';
 import { JobPriority, enqueue, type ClaimedJob, type JobResult } from '@eim/jobs';
+import { excludeSample, markConverged, markSuperseded, mayWrite, recordWithheld } from '@eim/pilot';
 import type { ChannelAdapterFactory, ProviderFailure } from '@eim/providers';
 import { describeFailure } from '@eim/providers';
 
@@ -77,6 +78,11 @@ export async function handleChannelWrite(
 
   if (enqueuedVersion !== null && enqueuedVersion < target.targetVersion) {
     // Section 12: an older target can never overwrite a newer committed one.
+    // The change this version carried is not lost — it is measured through the
+    // version that overtook it, which is why the sample is closed as superseded
+    // rather than left to be counted as a miss.
+    await markSuperseded(db, { mappingId, targetVersion: enqueuedVersion });
+
     return {
       status: 'superseded',
       detail: `version ${String(enqueuedVersion)} was overtaken by ${String(target.targetVersion)}`,
@@ -84,6 +90,12 @@ export async function handleChannelWrite(
   }
 
   if (target.state === 'blocked') {
+    await excludeSample(db, {
+      mappingId,
+      targetVersion: target.targetVersion,
+      reason: 'the mapping was blocked before this change could be sent',
+    });
+
     return {
       status: 'superseded',
       detail: target.stateReason ?? 'writing to this mapping is blocked',
@@ -91,6 +103,10 @@ export async function handleChannelWrite(
   }
 
   if (target.writtenVersion !== null && target.writtenVersion >= target.targetVersion) {
+    // Already delivered by an earlier attempt whose acknowledgement we did not
+    // see. It reached the channel, so the sample closes as converged.
+    await markConverged(db, { mappingId, targetVersion: target.targetVersion });
+
     return { status: 'superseded', detail: 'this target has already been written' };
   }
 
@@ -110,7 +126,43 @@ export async function handleChannelWrite(
       reason: whyNotWritable(permitted),
     });
 
+    // Excluded rather than counted as a miss. Section 1 measures "eligible
+    // inventory changes", and a mapping that stopped being eligible between the
+    // target being recorded and this job running is not a slow change — it is a
+    // change that stopped being ours to make. The alert above is the part an
+    // operator acts on; the exclusion is named so it stays visible in the report.
+    await excludeSample(db, {
+      mappingId,
+      targetVersion: target.targetVersion,
+      reason: 'the mapping stopped being writable before this change was sent',
+    });
+
     return { status: 'superseded', detail: whyNotWritable(permitted) };
+  }
+
+  // The staged-connection gate (section 36). Asked after eligibility and before
+  // any credential is decrypted, because a business still observing must not
+  // cause a provider to be contacted at all — not even to build an adapter.
+  const gate = await mayWrite(db, { businessId: job.businessId, mappingId });
+
+  if (!gate.allowed) {
+    await recordWithheld(db, {
+      businessId: job.businessId,
+      mappingId,
+      connectionId: permitted.target.connectionId,
+      intendedQuantity: target.desiredQuantity,
+      observedQuantity: target.observedQuantity,
+      stage: gate.stage,
+      reason: gate.reason,
+    });
+
+    await excludeSample(db, {
+      mappingId,
+      targetVersion: target.targetVersion,
+      reason: 'withheld by the pilot stage',
+    });
+
+    return { status: 'superseded', detail: gate.reason };
   }
 
   const adapter = await deps.adapterFor(permitted.target.connectionId);
@@ -179,6 +231,12 @@ export async function handleChannelWrite(
         : { observedVersion: perEntity.value.version }),
     },
   });
+
+  // The change has reached its channel. Section 1's clock, which started when
+  // the causing event became known, stops here — including for a no-op, where
+  // the channel already advertised the right number and the change was
+  // delivered by being unnecessary.
+  await markConverged(db, { mappingId, targetVersion: target.targetVersion });
 
   // Section 15: "after an outbound channel write, schedule a targeted
   // verification read and compare it with the current versioned target."
@@ -317,6 +375,23 @@ async function failWrite(
     // and in both cases continuing to queue writes would bury the alert under
     // failures that all say the same thing.
     await blockTarget(db, input.mappingId, describeFailure(input.failure));
+  }
+
+  // Section 1 excludes "external provider outages or throttling" from the
+  // service objective, and these two statuses are exactly that. Nothing else is
+  // excluded: a conflict or a rejection is a disagreement we have to resolve,
+  // and counting those as somebody else's problem is how an objective stops
+  // measuring anything. The exclusion is recorded once — a change delayed first
+  // by an outage and then by a throttle is excluded for what stopped it first.
+  if (input.failure.status === 'unavailable' || input.failure.status === 'rate_limited') {
+    await excludeSample(db, {
+      mappingId: input.mappingId,
+      targetVersion: input.targetVersion,
+      reason:
+        input.failure.status === 'rate_limited'
+          ? 'the provider was throttling'
+          : 'the provider was unavailable',
+    });
   }
 
   return toJobFailure(input.failure);

@@ -65,3 +65,4 @@ export * from './schema/backups';
 export * from './schema/listings';
 export * from './schema/shipping';
 export * from './schema/ai';
+export * from './schema/pilot';

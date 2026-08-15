@@ -6,6 +6,7 @@ import {
   type JobResult,
   type QueueExecutor,
 } from '@eim/jobs';
+import type { ChangeOrigin } from '@eim/pilot';
 import { describeFailure, type ProviderFailure } from '@eim/providers';
 import { and, eq } from 'drizzle-orm';
 
@@ -70,6 +71,16 @@ export async function requestOrderSync(
     readonly source: EventSource;
     /** The provider's event id, where the trigger had one. */
     readonly externalEventId?: string;
+    /**
+     * When this trigger was noticed. Defaults to now, which is correct for
+     * every current caller: a webhook handler calls this on receipt, and the
+     * poller calls it on discovery.
+     *
+     * Carried on the payload rather than read from the job's timestamps because
+     * a retried job's `run_at` is pushed forward by backoff — measuring from it
+     * would credit us for the delay we just caused.
+     */
+    readonly noticedAt?: Date;
   },
 ): Promise<void> {
   await enqueue(db, {
@@ -87,6 +98,12 @@ export async function requestOrderSync(
     payload: {
       externalOrderId: input.externalOrderId,
       source: input.source,
+      // Section 1's clock starts here. Note the interaction with the dedupe key
+      // above: two triggers about one order collapse, the first insert wins, and
+      // the surviving job keeps the *earlier* notice. That is the conservative
+      // choice — a webhook and its overlapping poll are measured from whichever
+      // told us first, which is the earliest moment we could have acted.
+      noticedAt: (input.noticedAt ?? new Date()).toISOString(),
       ...(input.externalEventId === undefined ? {} : { externalEventId: input.externalEventId }),
     },
   });
@@ -108,6 +125,7 @@ export async function handleOrderSync(
 ): Promise<JobResult> {
   const externalOrderId = asString(job.payload['externalOrderId']);
   const source = asSource(job.payload['source']);
+  const origin = orderOrigin(job.payload['noticedAt']);
 
   if (externalOrderId === null || job.businessId === null || job.connectionId === null) {
     return {
@@ -154,6 +172,7 @@ export async function handleOrderSync(
     const ingested = await ingestOrder(tx, {
       ...common,
       order,
+      changeOrigin: origin,
       event: { ...identity, eventType: 'order.state' },
     });
 
@@ -165,6 +184,7 @@ export async function handleOrderSync(
       case 'fulfilled':
         await applyFulfillment(tx, {
           ...common,
+          changeOrigin: origin,
           event: { ...identity, eventType: 'order.fulfilled' },
           reason: 'the channel reports this order as fulfilled',
           ...shippedQuantities(order),
@@ -174,6 +194,7 @@ export async function handleOrderSync(
       case 'cancelled':
         await applyCancellation(tx, {
           ...common,
+          changeOrigin: origin,
           event: { ...identity, eventType: 'order.cancelled' },
           reason: 'the channel reports this order as cancelled',
         });
@@ -182,6 +203,7 @@ export async function handleOrderSync(
       case 'refunded':
         await applyRefund(tx, {
           ...common,
+          changeOrigin: origin,
           event: { ...identity, eventType: 'order.refunded' },
           reason: 'the channel reports this order as refunded',
         });
@@ -346,6 +368,27 @@ function shippedQuantities(order: NormalizedOrder): {
   }
 
   return Object.keys(shipped).length === 0 ? {} : { shippedQuantities: shipped };
+}
+
+/**
+ * Recovers section 1's clock from the job that carried it.
+ *
+ * Falls back to now for a job queued before this field existed, and for one
+ * whose payload has been tampered with. Both cases understate the latency of
+ * that single change rather than overstating it, which is the right direction
+ * for a fallback to be wrong in: it can make one sample look fast, and it cannot
+ * invent a delay that did not happen.
+ */
+function orderOrigin(value: unknown): ChangeOrigin {
+  if (typeof value === 'string') {
+    const noticedAt = new Date(value);
+
+    if (!Number.isNaN(noticedAt.getTime())) {
+      return { kind: 'order', noticedAt };
+    }
+  }
+
+  return { kind: 'order', noticedAt: new Date() };
 }
 
 function asString(value: unknown): string | null {

@@ -1,5 +1,6 @@
 import type { Database } from '@eim/db';
 import { fulfillReservation, postMovements, releaseReservation } from '@eim/inventory';
+import { operatorOrigin, type ChangeOrigin } from '@eim/pilot';
 import { sql } from 'drizzle-orm';
 
 import { claimEvent, completeEvent, type EventIdentity } from './events';
@@ -68,6 +69,17 @@ export interface LifecycleInput {
   readonly reason: string;
   readonly actorUserId?: string | null;
   readonly now?: Date;
+  /**
+   * What caused this, and when we first knew (section 1). Threaded through
+   * rather than defaulted so a cancellation that arrived by webhook is measured
+   * from the webhook, not from whenever a worker reached it.
+   *
+   * Named `changeOrigin` rather than `origin` because `applyRefund` already has
+   * an `origin` meaning something else entirely — whether units came back as a
+   * return, a refund, or a dispute. Two unrelated meanings under one name on
+   * overlapping input types is a bug waiting for somebody in a hurry.
+   */
+  readonly changeOrigin: ChangeOrigin;
 }
 
 /**
@@ -329,6 +341,10 @@ export async function confirmRestock(
       businessId: input.businessId,
       canonicalItemId: candidate.canonical_item_id,
       reason: 'confirmed restock',
+      // A person just pressed confirm, so the change genuinely originates now.
+      // This is the one shape of caller for which `now` is the accurate answer
+      // rather than the convenient one.
+      origin: operatorOrigin('restock'),
     });
   }
 
@@ -437,6 +453,7 @@ async function applyLifecycle(
       businessId: input.businessId,
       canonicalItemId,
       reason: input.reason,
+      origin: input.changeOrigin,
     });
   }
 
