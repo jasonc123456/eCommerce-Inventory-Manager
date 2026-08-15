@@ -1,0 +1,66 @@
+# Browser tier (section 25, D-116, D-118).
+#
+# The only tier that opens a page. It drives the supported engines — Chromium,
+# Firefox, and WebKit, which are Chrome, Edge, Firefox, and Safari (section 2) —
+# against the standalone server the release image runs, behind a TLS terminator,
+# with a real PostgreSQL and a real mail capture beside it.
+#
+# Separate from the fast and integration tiers because it is slower than both
+# and because its failures mean something different: a failure here is a
+# rendered property — a contrast ratio, a focus order, a layout at 320 pixels, a
+# form that needs JavaScript — and none of those can be diagnosed by reading a
+# stack trace. That is why the report and the traces are uploaded.
+#
+# Everything runs inside docker-compose.e2e.yml. The runner installs no
+# browsers, no Node, and no system libraries of its own; the same command works
+# on a contributor's machine and here, which is the point.
+
+name: browser
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: browser-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    name: supported-browser end to end
+    runs-on: ubuntu-24.04
+    # The suite serves section 20's sixty-second sign-in cooldown rather than
+    # switching it off (D-283), so it is deliberately not fast.
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run the browser tier
+        env:
+          CI: "true"
+        run: ./scripts/e2e.sh
+
+      # Uploaded on failure only, and it is what makes a failure here
+      # actionable: the trace replays the run frame by frame, and the screenshot
+      # is usually enough on its own for a layout or contrast regression.
+      - name: Upload the report
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: browser-report
+          path: |
+            apps/e2e/.playwright/report
+            apps/e2e/.playwright/results
+          retention-days: 7
+
+      - name: Stop the stack
+        if: always()
+        run: ./scripts/e2e.sh down

@@ -17,11 +17,16 @@ import { describe, expect, it } from 'vitest';
  * assistive-technology pass; what it does is stop the regressions that happen
  * between such passes, which is most of them.
  *
- * A browser-driven axe run over the same screens is the other half and needs a
- * running application, a database, and a browser — the tier section 25 calls
- * "browser" and this repository does not yet have. This test is deliberately
- * written so that adding one later replaces nothing here: the two answer
- * different questions.
+ * The other half is `apps/e2e/tests/accessibility.cross.spec.ts`, which runs
+ * axe-core against the rendered page in three engines. It replaces nothing
+ * here, because the two answer different questions: that one measures contrast
+ * ratios, focus order, and inertness, none of which exist until a browser has
+ * resolved them; this one catches the structural mistake at the moment it is
+ * written, on every commit, in under a second, without a database or a browser.
+ *
+ * The division is worth keeping straight when adding a check. If the answer
+ * depends on what a browser computed, it belongs over there. If it is a
+ * property of the markup a screen declares, it belongs here.
  */
 
 const SCREENS = join(import.meta.dirname, 'app');

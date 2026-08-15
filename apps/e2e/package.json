@@ -1,0 +1,25 @@
+{
+  "name": "@eim/e2e",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "description": "Browser tier: the supported-browser end-to-end and accessibility suite.",
+  "scripts": {
+    "test:browser": "playwright test",
+    "report": "playwright show-report --host 0.0.0.0",
+    "serve:tls": "tsx src/tls-proxy.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "catalog:",
+    "@eim/db": "workspace:*",
+    "@playwright/test": "catalog:",
+    "@types/node": "catalog:",
+    "@types/pg": "catalog:",
+    "axe-core": "catalog:",
+    "pg": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:"
+  }
+}

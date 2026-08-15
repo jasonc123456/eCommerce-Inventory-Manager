@@ -31,6 +31,11 @@ The screen computes `passes` from all of this. There is no button that sets it.
 
 - [ ] `pnpm format:check && pnpm lint && pnpm typecheck` clean.
 - [ ] `pnpm test` and the integration project both green.
+- [ ] `./scripts/e2e.sh` green on all five projects — not only Chromium. The
+      other four exist because layout, focus, and contrast are where engines
+      disagree, and a release that only ran one engine has tested one of the
+      four browsers section 2 supports. See
+      [the browser tier](../testing/browser.md).
 - [ ] `security` workflow green — dependency advisories and image scan.
 - [ ] `EXPECTED_SCHEMA_VERSION` matches the migration files. The release
       workflow re-checks this, because a build whose readiness check disagrees

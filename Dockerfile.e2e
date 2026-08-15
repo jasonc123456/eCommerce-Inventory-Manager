@@ -1,0 +1,56 @@
+# Browser tier image (section 25, D-116).
+#
+# This is neither the production image nor the development toolchain image. It
+# exists so the browser tier can run without installing browsers, their system
+# libraries, or Node on anybody's host — the same rule the rest of this
+# deployment follows.
+#
+# It is built on the same node:24 base as Dockerfile.dev rather than on
+# Microsoft's Playwright image, for one reason: this workspace pins Node 24 in
+# `engines`, and the published Playwright images track their own Node version.
+# Running the suite on a different major than the application is built with
+# would mean the browser tier is the one place where a Node difference could
+# produce a result the other tiers cannot reproduce.
+#
+# Browsers are installed into a shared path outside the workspace, because the
+# workspace is a bind mount at run time and anything written under it would land
+# on the host.
+FROM node:24-bookworm-slim
+
+ARG DEV_UID=1001
+ARG DEV_GID=1001
+ARG PNPM_VERSION=11.18.0
+
+# Pinned deliberately. `playwright install` downloads a browser build matched to
+# the library version, so an unpinned installer would put a browser in the image
+# that the @playwright/test in the lockfile refuses to drive. Keep this in step
+# with the `@playwright/test` entry in pnpm-workspace.yaml's catalog.
+ARG PLAYWRIGHT_VERSION=1.62.1
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        git \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN if ! getent group "${DEV_GID}" >/dev/null; then groupadd -g "${DEV_GID}" dev; fi \
+    && useradd -m -u "${DEV_UID}" -g "${DEV_GID}" -s /bin/bash dev
+
+RUN corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+
+# Outside /workspace on purpose: /workspace is a bind mount, and a browser
+# downloaded into it would be written to the host and re-downloaded by every
+# contributor whose image cache differs from their checkout.
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright-browsers
+
+# Chromium, Firefox, and WebKit, because section 2 supports Chrome, Edge,
+# Firefox, and Safari, and those are the three engines behind that list.
+# `--with-deps` is what installs the shared libraries the browsers link against;
+# it needs root, which is why this runs before the USER switch.
+RUN npx --yes "playwright@${PLAYWRIGHT_VERSION}" install --with-deps chromium firefox webkit \
+    && chmod -R a+rX "${PLAYWRIGHT_BROWSERS_PATH}"
+
+USER dev
+WORKDIR /workspace
+
+CMD ["sleep", "infinity"]

@@ -1,0 +1,110 @@
+# Browser tier stack (section 25, D-116). Tracked in the repository.
+#
+# Deliberately separate from docker-compose.dev.yml. The browser tier wants a
+# database it is allowed to empty, and pointing it at the development one would
+# make "run the browser tests" a command that silently destroys whatever a
+# contributor was working on. This stack has its own PostgreSQL, its own mail
+# capture, and its own ports.
+#
+#   ./scripts/e2e.sh              # build the app, then run every browser test
+#   ./scripts/e2e.sh --project chromium
+#   ./scripts/e2e.sh report       # open the last HTML report
+#
+name: eim-e2e
+
+services:
+  # ---------------------------------------------------------------------------
+  # e2e — the runner. Holds the browsers, the Next.js server under test, and the
+  # TLS terminator in front of it, so the browser reaches the application over
+  # exactly the scheme production uses.
+  # ---------------------------------------------------------------------------
+  e2e:
+    build:
+      context: .
+      dockerfile: Dockerfile.e2e
+      args:
+        DEV_UID: "${DEV_UID:-1001}"
+        DEV_GID: "${DEV_GID:-1001}"
+    container_name: eim-e2e
+    working_dir: /workspace
+    # The suite drives real browsers, and Chromium's renderer needs more than
+    # Docker's default 64MB of shared memory. Without this, pages crash partway
+    # through a run in a way that reads as a flaky test rather than as a
+    # container limit.
+    shm_size: 1gb
+    environment:
+      # Production, because the browser tier's job is to exercise what ships.
+      # `next start` serves the production build, the configuration loader
+      # applies no development substitutions, and the values below are all real
+      # rather than placeholders — which is also why EIM_PUBLIC_URL is HTTPS
+      # (section 19 requires it in production) and why there is a terminator in
+      # front of the server.
+      NODE_ENV: production
+      EIM_PUBLIC_URL: https://localhost:3443
+      EIM_DATABASE_URL: postgresql://eim:eim@postgres:5432/eim
+      # Fixed and worthless on purpose. They are in a tracked file, so they must
+      # be values that protect nothing: this database is created empty and
+      # dropped, and this installation is reachable from nowhere.
+      EIM_SESSION_SECRET: e2e-only-session-secret-0123456789abcdef
+      EIM_KEYRING: '[{"version":1,"key":"ZTJlLW9ubHktMzItYnl0ZS10ZXN0LWtleS0wMDAwMDE="}]'
+      EIM_KEYRING_ACTIVE_VERSION: "1"
+      EIM_SETUP_SECRET: e2e-only-setup-secret-0123456789abcdef
+      EIM_INITIAL_ADMIN_EMAIL: owner@example.invalid
+      EIM_SMTP_HOST: mailpit
+      EIM_SMTP_PORT: "1025"
+      EIM_MAIL_FROM_ADDRESS: e2e@example.invalid
+      EIM_MAIL_FROM_NAME: Inventory Manager
+      # The carrier this installation runs in production (see the deployment
+      # notes on Office 365 Safe Links dropping URL fragments). The browser tier
+      # is the only tier that can prove a link in that shape actually works,
+      # so it runs in that shape.
+      EIM_MAGIC_LINK_TOKEN_CARRIER: query
+      EIM_LOG_LEVEL: warn
+      # Read by the suite itself rather than by the application.
+      EIM_E2E_BASE_URL: https://localhost:3443
+      EIM_E2E_MAILPIT_URL: http://mailpit:8025
+      EIM_E2E_ADMIN_EMAIL: owner@example.invalid
+      EIM_E2E_SETUP_SECRET: e2e-only-setup-secret-0123456789abcdef
+    volumes:
+      - .:/workspace
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  postgres:
+    image: postgres:18-bookworm
+    container_name: eim-e2e-postgres
+    environment:
+      POSTGRES_USER: eim
+      POSTGRES_PASSWORD: eim
+      POSTGRES_DB: eim
+    # In memory, and nowhere else. The browser tier's database is disposable by
+    # design, and a run that begins by emptying a persistent volume is one
+    # misconfiguration away from emptying the wrong one. It is also considerably
+    # faster, which matters when every run starts by migrating from nothing.
+    #
+    # Mounted at the parent rather than at PGDATA: PostgreSQL 18's image places
+    # its data in a major-version subdirectory and refuses to start when
+    # something is mounted over the old location instead.
+    tmpfs:
+      - /var/lib/postgresql:size=1g
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eim -d eim"]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+  mailpit:
+    image: axllent/mailpit:v1.28
+    container_name: eim-e2e-mailpit
+    environment:
+      MP_MAX_MESSAGES: "500"
+      MP_SMTP_AUTH_ACCEPT_ANY: "true"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+    ports:
+      # Exposed so a failing authentication test can be investigated by reading
+      # the message the suite read. Loopback only.
+      - "127.0.0.1:8026:8025"

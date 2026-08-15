@@ -25,6 +25,7 @@ an owner, or a contributor needs while actually doing something.
 
 ## Contributor
 
+- [The browser tier](testing/browser.md) — the only tier that opens a page, what it drives, and what it caught.
 - [Architecture decisions](adr/) — one record per material decision.
 - [CONTRIBUTING.md](../CONTRIBUTING.md) — setup, tests, commit policy.
 - [SECURITY.md](../SECURITY.md) — reporting a vulnerability.

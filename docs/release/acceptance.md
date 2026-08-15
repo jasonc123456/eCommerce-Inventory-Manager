@@ -50,7 +50,7 @@ against a provider it has never called.
 | AC-14 | Secrets and privacy       | proven                  | `packages/crypto/src/keyring.test.ts`, `packages/retention/src/sweep.integration.test.ts`, `.github/workflows/security.yml`, `docs/security/threat-model.md`                                                          |
 | AC-15 | Availability and recovery | proven                  | `packages/sync/src/acceptance.integration.test.ts`, `packages/health/src/acceptance.integration.test.ts`, `packages/health/src/policy.test.ts`                                                                        |
 | AC-16 | Backup and upgrade        | proven                  | `scripts/backup.sh`, `scripts/restore.sh`, `scripts/upgrade.sh`, `docs/operations/backup-and-restore.md`, `docs/operations/upgrade.md`, `docs/operations/server-migration.md`                                         |
-| AC-17 | Accessibility and UI      | proven                  | `apps/web/src/accessibility.test.ts`, `apps/web/src/components/form.tsx`                                                                                                                                              |
+| AC-17 | Accessibility and UI      | proven                  | `apps/web/src/accessibility.test.ts`, `apps/web/src/components/form.tsx`, `apps/e2e/tests/accessibility.cross.spec.ts`, `apps/e2e/tests/shell.cross.spec.ts`                                                          |
 | AC-18 | Observability             | proven                  | `packages/health/src/acceptance.integration.test.ts`, `packages/notifications/src/sweep.integration.test.ts`, `apps/web/src/lib/metrics-auth.test.ts`                                                                 |
 | AC-19 | Performance               | proven                  | `packages/sync/src/acceptance.integration.test.ts`, `packages/pilot/src/slo.ts`, `packages/pilot/src/pilot.integration.test.ts`                                                                                       |
 | AC-20 | Release readiness         | proven                  | `.github/workflows/fast.yml`, `.github/workflows/integration.yml`, `.github/workflows/security.yml`, `.github/workflows/release.yml`, `docs/operations/pilot.md`, `packages/pilot/src/acceptance.integration.test.ts` |
@@ -60,11 +60,19 @@ against a provider it has never called.
 It means the cited artifact asserts the property against a real PostgreSQL
 database, a real build, or the file it describes.
 
-It does not mean a browser-driven accessibility pass has been run against a
-running installation — section 25's "browser" tier does not exist in this
-repository yet, and AC-17's static audit says so in its own header. It does not
-mean any provider has been called in anger: every provider test in this
-repository runs against a programmable fake, by design and by lint boundary.
+It no longer excludes a browser-driven pass. Section 25's browser tier exists
+as of M10: `apps/e2e` runs axe-core against every screen in Chromium, Gecko, and
+WebKit, on desktop and mobile viewports, against a real running installation.
+Its first run found two colour tokens below 4.5:1 that the static audit could
+not have seen, because contrast is a property of colours a browser has resolved.
+Both halves are cited for AC-17, and neither is sufficient alone.
+
+It still does not mean any provider has been called in anger: every provider
+test in this repository runs against a programmable fake, by design and by lint
+boundary. Nor does it mean every journey section 25 lists has a browser test —
+setup, authentication, business creation, deletion, and accessibility do;
+connection, mapping, sale, conflict, draft/price, shipping, and backup do not
+yet.
 
 What closes that last gap is the pilot itself, which is why section 36 requires
 both.

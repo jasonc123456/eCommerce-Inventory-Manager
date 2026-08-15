@@ -86,6 +86,15 @@ catalog:
   vitest: 4.1.10
   "@vitest/coverage-v8": 4.1.10
   fast-check: 4.9.0
+  # The browser tier (D-116). This version has to stay in step with the
+  # PLAYWRIGHT_VERSION argument in Dockerfile.e2e: the library refuses to drive a
+  # browser build it was not matched with, and the browsers come from the image.
+  "@playwright/test": 1.62.1
+  # An actual WCAG rule engine, run against the rendered page. The static audit
+  # in apps/web can see that a screen has a heading; only this can see that the
+  # heading is invisible behind an overlay or that the contrast fails.
+  "@axe-core/playwright": 4.13.0
+  axe-core: 4.13.0
 
   # Types
   "@types/node": 24.13.3

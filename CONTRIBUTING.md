@@ -53,6 +53,7 @@ Useful commands:
 | ------------------------ | ---------------------------------------------- |
 | `pnpm test`              | Unit tests with coverage                       |
 | `pnpm test:integration`  | Integration tests against a real PostgreSQL 18 |
+| `./scripts/e2e.sh`       | Browser tier, in containers (docs/testing)     |
 | `pnpm lint`              | ESLint, with warnings treated as errors        |
 | `pnpm typecheck`         | TypeScript across every package                |
 | `pnpm format`            | Prettier, writing changes                      |
@@ -122,6 +123,14 @@ years.
 **Property tests for the inventory arithmetic.** The availability calculation
 has invariants — never negative, never exceeding on-hand, monotonic in safety
 stock — and fast-check will find the counterexample you did not think of.
+
+**Anything about a rendered page belongs in the browser tier.** Contrast, focus
+order, layout at 320 pixels, whether a form works without JavaScript: none of
+these can be seen by reading source, and `apps/web/src/accessibility.test.ts`
+does not pretend otherwise — it checks structure, not appearance. Run
+`./scripts/e2e.sh --project chromium` while working and let CI do the other four
+engines. [docs/testing/browser.md](docs/testing/browser.md) explains what it
+drives and why.
 
 ## Architecture boundaries
 

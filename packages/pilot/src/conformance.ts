@@ -243,7 +243,19 @@ export const CONFORMANCE: readonly ConformanceEntry[] = [
     criterion:
       'Keyboard, focus, screen-reader semantics, responsive parity, stale/error states, confirmation tiers, and theme contrast meet WCAG 2.2 AA.',
     status: 'proven',
-    evidence: ['apps/web/src/accessibility.test.ts', 'apps/web/src/components/form.tsx'],
+    // Two halves, and neither is sufficient alone. The static audit reads every
+    // screen's source for structure — a heading, no colour-only status, no
+    // positive tabIndex. The browser tier measures what only exists once a
+    // browser has resolved it: contrast ratios, focus order, inertness, and the
+    // layout at 320 pixels. Citing only the first would have claimed WCAG 2.2 AA
+    // on the strength of a grep, and the browser tier's first run found two
+    // contrast failures the grep could not have seen.
+    evidence: [
+      'apps/web/src/accessibility.test.ts',
+      'apps/web/src/components/form.tsx',
+      'apps/e2e/tests/accessibility.cross.spec.ts',
+      'apps/e2e/tests/shell.cross.spec.ts',
+    ],
   },
   {
     id: 'AC-18',

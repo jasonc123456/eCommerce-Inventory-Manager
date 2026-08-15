@@ -133,6 +133,7 @@ says.
 | ------------------------ | ---------------------------------------------- |
 | `pnpm test`              | Unit tests with coverage thresholds            |
 | `pnpm test:integration`  | Integration tests against a real PostgreSQL 18 |
+| `./scripts/e2e.sh`       | Browser tier: five projects, three engines     |
 | `pnpm lint`              | ESLint, warnings treated as errors             |
 | `pnpm typecheck`         | TypeScript across every package                |
 | `pnpm format`            | Prettier, writing changes                      |

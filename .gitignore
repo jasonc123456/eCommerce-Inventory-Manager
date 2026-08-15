@@ -18,6 +18,17 @@ test-results/
 playwright-report/
 blob-report/
 
+# Browser tier working files: traces, videos, and the HTML report, plus the
+# session the setup project saves and the certificate the terminator generates
+# for itself. Every one is produced by a run and belongs to that run.
+#
+# `.auth` holds a live session cookie, so it is matched anywhere in the tree
+# rather than at one path. A relative output path that resolves somewhere
+# unexpected is not a hypothetical: this rule was written after one did.
+.playwright/
+**/.auth/
+**/.tls/
+
 # Real secrets and real deployment state. Section 23 and D-092 keep these at the
 # deployment root, outside this repository, but ignore them here as well so a
 # stray copy can never be committed.
