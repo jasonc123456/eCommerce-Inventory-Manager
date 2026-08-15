@@ -12,6 +12,12 @@ an owner, or a contributor needs while actually doing something.
 - [Backup and restore](operations/backup-and-restore.md) — nightly backups, the quarterly drill.
 - [Moving to another server](operations/server-migration.md) — the supported portable path.
 - [Health and alerts](operations/health-and-alerts.md) — what each check means and what to do.
+- [Running the controlled pilot](operations/pilot.md) — the four stages, the three drills, and how to read the bar.
+
+## Releasing
+
+- [Release checklist](release/checklist.md) — the gates, in order, none of them an opinion.
+- [AC-01 through AC-20](release/acceptance.md) — each criterion and the artifact that proves it.
 
 ## Security administrator
 
