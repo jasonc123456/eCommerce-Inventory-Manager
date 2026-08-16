@@ -41,6 +41,29 @@ pre-commit:
           exit 1
         fi
 
+    - name: no secrets in the diff
+      # The check above reads filenames. This one reads content, which is the
+      # gap it left: a credential pasted into a file with an innocent name
+      # passed every local hook and was caught only by the CI scan, after it had
+      # been pushed. "Caught by CI" is the wrong place to learn that, because by
+      # then the value is published and rotating it is the only remedy.
+      #
+      # The same pinned scanner CI runs, in a container, so nothing is installed
+      # on the host. `protect --staged` reads the staged diff rather than the
+      # history, which keeps it fast enough to leave enabled.
+      #
+      # Skipped, loudly, where Docker is unavailable. Contributors working with
+      # a native Node toolchain are supported (see scripts/dev.sh), a hook is
+      # not the gate (D-118), and CI scans the full history regardless.
+      run: |
+        if ! docker info >/dev/null 2>&1; then
+          echo "Docker unavailable: skipping the staged secret scan. CI will still run it." >&2
+          exit 0
+        fi
+        docker run --rm -v "$(pwd):/repo" -w /repo \
+          ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f \
+          protect --staged --redact --no-banner
+
 commit-msg:
   jobs:
     - name: subject style

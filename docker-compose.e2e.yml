@@ -43,12 +43,21 @@ services:
       EIM_PUBLIC_URL: https://localhost:3443
       EIM_DATABASE_URL: postgresql://eim:eim@postgres:5432/eim
       # Fixed and worthless on purpose. They are in a tracked file, so they must
-      # be values that protect nothing: this database is created empty and
-      # dropped, and this installation is reachable from nowhere.
-      EIM_SESSION_SECRET: e2e-only-session-secret-0123456789abcdef
-      EIM_KEYRING: '[{"version":1,"key":"ZTJlLW9ubHktMzItYnl0ZS10ZXN0LWtleS0wMDAwMDE="}]'
+      # be values that protect nothing: this database is created empty in memory
+      # and dropped, and this installation is reachable from nowhere.
+      #
+      # They must also not *look* like secrets. A secret scanner cannot tell a
+      # fabricated key from a real one and should not be asked to try, so the
+      # keyring below is thirty-two identical bytes — valid AES-256 material by
+      # length, visibly not a key by inspection, and low enough in entropy that
+      # no detector has to be told to ignore it. The obvious choice, thirty-two
+      # zero bytes, is taken: `@eim/config` treats it as the development
+      # placeholder and refuses it under NODE_ENV=production, which is the
+      # branch this file exists to exercise rather than avoid.
+      EIM_SESSION_SECRET: not-a-secret-browser-tier-session-value
+      EIM_KEYRING: '[{"version":1,"key":"QUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUE="}]'
       EIM_KEYRING_ACTIVE_VERSION: "1"
-      EIM_SETUP_SECRET: e2e-only-setup-secret-0123456789abcdef
+      EIM_SETUP_SECRET: not-a-secret-browser-tier-setup-value-00
       EIM_INITIAL_ADMIN_EMAIL: owner@example.invalid
       EIM_SMTP_HOST: mailpit
       EIM_SMTP_PORT: "1025"
@@ -64,7 +73,7 @@ services:
       EIM_E2E_BASE_URL: https://localhost:3443
       EIM_E2E_MAILPIT_URL: http://mailpit:8025
       EIM_E2E_ADMIN_EMAIL: owner@example.invalid
-      EIM_E2E_SETUP_SECRET: e2e-only-setup-secret-0123456789abcdef
+      EIM_E2E_SETUP_SECRET: not-a-secret-browser-tier-setup-value-00
     volumes:
       - .:/workspace
     depends_on:

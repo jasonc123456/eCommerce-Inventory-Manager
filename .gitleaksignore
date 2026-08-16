@@ -1,0 +1,18 @@
+# Reviewed gitleaks findings that are not secrets.
+#
+# One entry only, and it should stay that way. A file like this is how a real
+# leak gets waved through, so the bar for adding a line is that the value can be
+# shown to protect nothing — not that the finding is inconvenient.
+#
+# 829f834 — docker-compose.e2e.yml line 49, rule generic-api-key.
+#
+# The browser tier's `EIM_KEYRING`, flagged on entropy alone. The value decodes
+# to the ASCII string "e2e-only-32-byte-test-key-000001": fabricated, committed
+# deliberately, and the encryption key for a PostgreSQL database that lives in
+# tmpfs, is created empty at the start of every run, and is dropped at the end.
+# It has never encrypted anything that existed outside a test.
+#
+# It was replaced in the following commit with thirty-two identical bytes, which
+# no detector flags, so nothing after this commit needs an exception. This line
+# exists because the scan reads history and history is already published.
+829f834b9d26a11e7bf2da399587c5f0580c045d:docker-compose.e2e.yml:generic-api-key:49
