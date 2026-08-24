@@ -71,6 +71,13 @@ run env NODE_ENV=development pnpm install --frozen-lockfile
 echo "==> building the application under test" >&2
 run env NEXT_DIST_DIR="${E2E_DIST_DIR}" pnpm --filter @eim/web build
 
+# `next build` rewrites apps/web/next-env.d.ts to reference whichever distDir it
+# was given, and that file is tracked. Left alone, every run of this tier dirties
+# the working tree with a reference to a directory only this tier builds — which
+# then fails `pnpm typecheck` for anyone who has not run it. The deployment's
+# build-and-swap.sh restores it for the same reason.
+git checkout -- apps/web/next-env.d.ts 2>/dev/null || true
+
 # Next.js splits the standalone output from the static assets and the public
 # directory on purpose: the server tree omits everything the build proved was
 # unreachable. The release image copies all three into place (see the
