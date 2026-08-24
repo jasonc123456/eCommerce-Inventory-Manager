@@ -47,5 +47,18 @@ export const environment = {
  */
 export const OWNER_STATE_PATH = '.auth/owner.json';
 
+/**
+ * Where `scripts/e2e.sh` builds the application under test, and so where the
+ * standalone server Playwright starts is found.
+ *
+ * Deliberately not `.next`. This stack bind-mounts the working tree, and on the
+ * host that serves the site straight from `apps/web/.next` a build here would
+ * delete the files the running server is still serving — leaving a live site
+ * that answers 500 for the assets its own HTML asks for. The value must match
+ * E2E_DIST_DIR in `scripts/e2e.sh`; if the two drift the server fails to start,
+ * which is the failure worth having.
+ */
+export const E2E_DIST_DIR = '.next.e2e';
+
 /** The business the setup project creates and every other spec expects to find. */
 export const BUSINESS_NAME = 'Pilot Supplies Ltd';

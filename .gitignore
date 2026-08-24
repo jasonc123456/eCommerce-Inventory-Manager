@@ -9,6 +9,9 @@ dist/
 # that is also a live installation.
 .next.build/
 .next.old/
+# The browser tier builds here for the same reason: it bind-mounts the working
+# tree, so building into .next would delete what the live server is serving.
+.next.e2e/
 out/
 *.tsbuildinfo
 

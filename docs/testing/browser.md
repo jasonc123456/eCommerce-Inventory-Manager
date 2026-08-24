@@ -55,10 +55,22 @@ it five times would spend minutes re-proving the same server behaviour.
 
 ## What it runs against
 
-The **standalone server**, started as `node apps/web/.next/standalone/apps/web/server.js`
-— which is what the release image's `CMD` runs. Not `next start`: that against an
+The **standalone server**, started as
+`node apps/web/.next.e2e/standalone/apps/web/server.js` — which is what the
+release image's `CMD` runs. Not `next start`: that against an
 `output: 'standalone'` build is a combination Next.js prints a warning about, so
 a tier using it would be proving things about a server no release runs (D-282).
+
+`.next.e2e`, not `.next`, and that matters more than it looks (D-284). This
+stack bind-mounts the working tree, so a build here writes into the same
+directory anything else reading that tree is using. On a host that serves the
+site straight from `apps/web/.next` — which this deployment does until M8
+publishes an image — an ordinary `next build` deletes the chunks the running
+server is still handing out. The site then answers 500 for assets its own HTML
+asks for, and a restart does not help, because the build it was serving is gone.
+The value lives in two places, `E2E_DIST_DIR` in `scripts/e2e.sh` and the
+constant of the same name in `apps/e2e/src/environment.ts`; if they drift, the
+server fails to start, which is the loud failure rather than the quiet one.
 
 In front of it, a TLS terminator (`apps/e2e/src/tls-proxy.ts`) holding a
 self-signed certificate it generates for itself. That is not decoration. Section

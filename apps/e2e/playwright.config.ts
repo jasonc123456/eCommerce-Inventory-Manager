@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-import { environment, OWNER_STATE_PATH } from './src/environment';
+import { E2E_DIST_DIR, environment, OWNER_STATE_PATH } from './src/environment';
 
 /**
  * The browser tier (section 25, D-116).
@@ -115,9 +115,13 @@ export default defineConfig({
   // it serves is assembled by `scripts/e2e.sh` immediately after the build,
   // because the static assets and the public directory live outside the
   // standalone output by design.
+  //
+  // It is built into E2E_DIST_DIR rather than `.next`, so that running this
+  // tier on a host that serves the site from the same working tree cannot pull
+  // the build out from under the live server.
   webServer: [
     {
-      command: 'node apps/web/.next/standalone/apps/web/server.js',
+      command: `node apps/web/${E2E_DIST_DIR}/standalone/apps/web/server.js`,
       cwd: '../..',
       env: { PORT: '3100', HOSTNAME: '127.0.0.1' },
       url: 'http://127.0.0.1:3100/api/health',

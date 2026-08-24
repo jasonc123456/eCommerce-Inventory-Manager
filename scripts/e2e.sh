@@ -22,6 +22,11 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE=(docker compose -f "${REPO_ROOT}/docker-compose.e2e.yml")
 
+# Where this tier's build lands. Must match E2E_DIST_DIR in
+# apps/e2e/src/environment.ts, which is where Playwright learns to find the
+# server it starts; a mismatch fails loudly at startup rather than quietly.
+E2E_DIST_DIR=".next.e2e"
+
 cd "${REPO_ROOT}"
 
 if [ "${1:-}" = "down" ]; then
@@ -54,20 +59,35 @@ fi
 echo "==> installing" >&2
 run env NODE_ENV=development pnpm install --frozen-lockfile
 
+# Into a build directory of its own, never apps/web/.next.
+#
+# This stack bind-mounts the working tree, so a build here writes to the same
+# files any other process is reading from it. On a host that serves the site
+# from apps/web/.next — which is what this deployment does until M8 publishes an
+# image — an ordinary `next build` deletes the chunks the running server is
+# still handing out, and the site starts answering 500 for assets its own HTML
+# asks for. It survives a restart, because by then the build it was serving is
+# gone. Building somewhere else is the whole fix: nothing else needs to know.
 echo "==> building the application under test" >&2
-run pnpm --filter @eim/web build
+run env NEXT_DIST_DIR="${E2E_DIST_DIR}" pnpm --filter @eim/web build
 
 # Next.js splits the standalone output from the static assets and the public
 # directory on purpose: the server tree omits everything the build proved was
 # unreachable. The release image copies all three into place (see the
 # Dockerfile), and so does this, because the tier serves the same tree the
 # release does rather than the one `next start` would serve.
+#
+# The directory inside the standalone tree is named after distDir, so it is
+# discovered rather than assumed — the name is Next.js's to choose, and a wrong
+# guess would copy the assets somewhere the server never looks.
 echo "==> assembling the standalone server" >&2
-run sh -c '
+run env "E2E_DIST_DIR=${E2E_DIST_DIR}" sh -c '
   set -e
-  root=apps/web/.next/standalone/apps/web
-  rm -rf "${root}/.next/static" "${root}/public"
-  cp -r apps/web/.next/static "${root}/.next/static"
+  dist="apps/web/${E2E_DIST_DIR}"
+  root="${dist}/standalone/apps/web"
+  inner="$(ls -d "${root}"/.next* | head -n 1)"
+  rm -rf "${inner}/static" "${root}/public"
+  cp -r "${dist}/static" "${inner}/static"
   cp -r apps/web/public "${root}/public"
 '
 
