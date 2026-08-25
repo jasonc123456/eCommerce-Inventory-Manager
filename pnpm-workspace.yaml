@@ -70,9 +70,9 @@ catalog:
 
   # Build and quality
   typescript: 6.0.3
-  eslint: 10.8.0
+  eslint: 10.9.0
   "@eslint/js": 10.0.1
-  typescript-eslint: 8.65.0
+  typescript-eslint: 8.67.0
   prettier: 3.9.6
   eslint-config-prettier: 10.1.8
   eslint-plugin-jsx-a11y: 6.10.2
@@ -83,8 +83,8 @@ catalog:
   "@next/eslint-plugin-next": 16.2.12
 
   # Test
-  vitest: 4.1.10
-  "@vitest/coverage-v8": 4.1.10
+  vitest: 4.1.11
+  "@vitest/coverage-v8": 4.1.11
   fast-check: 4.9.0
   # The browser tier (D-116). This version has to stay in step with the
   # PLAYWRIGHT_VERSION argument in Dockerfile.e2e: the library refuses to drive a
